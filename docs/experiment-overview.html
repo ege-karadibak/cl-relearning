@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relearning Experiment Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one narrow reading column; each section = one step of the story, with a diagram where it helps. Arms A/B/C keep the same color everywhere. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #1b2330;
+  --muted: #5b6676;
+  --line: #d5dae2;
+  --accent: #2b59c3;
+  --a: #2b59c3;
+  --b: #7a7f88;
+  --c: #c2701d;
+  --a-soft: #e6ecfa;
+  --b-soft: #eceef1;
+  --c-soft: #f8ecdf;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161d;
+    --surface: #1a2029;
+    --ink: #e4e8ee;
+    --muted: #9aa4b2;
+    --line: #2f3845;
+    --accent: #7ea2f0;
+    --a: #7ea2f0;
+    --b: #a3a9b3;
+    --c: #e6a05c;
+    --a-soft: #1f2a42;
+    --b-soft: #242a33;
+    --c-soft: #3a2a1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161d;
+  --surface: #1a2029;
+  --ink: #e4e8ee;
+  --muted: #9aa4b2;
+  --line: #2f3845;
+  --accent: #7ea2f0;
+  --a: #7ea2f0;
+  --b: #a3a9b3;
+  --c: #e6a05c;
+  --a-soft: #1f2a42;
+  --b-soft: #242a33;
+  --c-soft: #3a2a1a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+  display: grid;
+  gap: 52px;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-family: var(--font-display); font-size: 2.2rem; line-height: 1.15; }
+h2 { font-family: var(--font-display); font-size: 1.55rem; line-height: 1.2; }
+h3 { font-size: 1.02rem; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+.lede { color: var(--muted); font-size: 1.08rem; }
+section { display: grid; gap: 16px; }
+.eyebrow { font-family: var(--font-mono); font-size: .78rem; color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+code, .mono { font-family: var(--font-mono); font-size: .9em; }
+
+.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .9rem; }
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover, .toc a:focus-visible { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.question {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 20px 22px;
+  display: grid;
+  gap: 10px;
+}
+.question strong { font-size: 1.15rem; }
+
+.arms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.arm {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--arm);
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.arm .tag { font-family: var(--font-mono); font-weight: 500; color: var(--arm); }
+.arm p { font-size: .94rem; color: var(--muted); }
+.arm-a { --arm: var(--a); }
+.arm-b { --arm: var(--b); }
+.arm-c { --arm: var(--c); }
+
+figure {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  overflow-x: auto;
+}
+figure svg { width: 100%; height: auto; min-width: 700px; display: block; color: var(--ink); }
+figure.small svg { min-width: 540px; }
+figcaption { font-size: .9rem; color: var(--muted); max-width: 84ch; }
+
+/* Arm colors inside SVG, theme-aware */
+svg .sa { stroke: var(--a); }
+svg .sb { stroke: var(--b); }
+svg .sc { stroke: var(--c); }
+svg .fa { fill: var(--a); }
+svg .fb { fill: var(--b); }
+svg .fc { fill: var(--c); }
+svg .fa-soft { fill: var(--a-soft); }
+svg .fb-soft { fill: var(--b-soft); }
+svg .fc-soft { fill: var(--c-soft); }
+svg .fmuted { fill: var(--muted); }
+svg .sline { stroke: var(--line); }
+svg .fsurface { fill: var(--surface); }
+svg .faccent { fill: var(--accent); }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: step; }
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.steps li::before {
+  content: counter(step);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--a-soft);
+  color: var(--accent);
+}
+.steps .body { display: grid; gap: 4px; }
+.why { color: var(--muted); font-size: .93rem; }
+.why b { color: var(--ink); font-weight: 600; }
+.measure { font-size: .93rem; }
+.measure b { font-family: var(--font-mono); font-size: .8rem; font-weight: 500; color: var(--accent); text-transform: uppercase; letter-spacing: .03em; margin-right: 6px; }
+.phase-label {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin-top: 8px;
+}
+.phase-label h3 { font-size: 1.08rem; }
+.phase-label span { color: var(--muted); font-size: .9rem; }
+
+table { border-collapse: collapse; width: 100%; font-size: .95rem; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; background: var(--b-soft); }
+tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+caption { caption-side: top; text-align: left; font-weight: 600; padding: 0 0 8px; }
+.table-title { font-weight: 600; margin-top: 6px; }
+.pill { font-family: var(--font-mono); font-size: .85rem; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.pill-a { background: var(--a-soft); color: var(--a); }
+.pill-b { background: var(--b-soft); color: var(--b); }
+.pill-c { background: var(--c-soft); color: var(--c); }
+.key { font-family: var(--font-mono); font-size: .78rem; padding: 1px 7px; border-radius: 4px; background: var(--a-soft); color: var(--accent); white-space: nowrap; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.card p { font-size: .94rem; }
+.card.note { border-left: 4px solid var(--accent); }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: .94rem; }
+
+.figlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.figlist li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: 74px 1fr; gap: 12px; }
+.figlist .fig-no { font-family: var(--font-mono); font-size: .85rem; color: var(--accent); font-weight: 500; }
+.figlist .body { display: grid; gap: 4px; }
+
+/* status badges: icon + word, never colour alone */
+:root { --ok: #1a7f52; --ok-soft: #e3f4ec; --wip: #a35a00; --wip-soft: #fbefdc; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #5cc79a; --ok-soft: #173326; --wip: #e6a05c; --wip-soft: #3a2a1a; } }
+:root[data-theme="dark"] { --ok: #5cc79a; --ok-soft: #173326; --wip: #e6a05c; --wip-soft: #3a2a1a; }
+.badge { font-family: var(--font-mono); font-size: .74rem; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; vertical-align: middle; }
+.badge.done { background: var(--ok-soft); color: var(--ok); }
+.badge.wip { background: var(--wip-soft); color: var(--wip); }
+.badge.todo { background: var(--b-soft); color: var(--muted); }
+.toc-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 18px; }
+.toc-groups div { display: grid; gap: 3px; align-content: start; }
+.toc-groups .grp { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.toc-groups a { color: var(--accent); text-decoration: none; font-size: .92rem; }
+.toc-groups a:hover, .toc-groups a:focus-visible { text-decoration: underline; }
+.track { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
+.track .stp { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.track .stp.is-done { border-color: var(--ok); }
+.track .stp.is-wip { border-color: var(--wip); border-width: 2px; }
+.track .stp .n { font-family: var(--font-mono); font-size: .75rem; color: var(--muted); }
+.track .stp b { font-size: .95rem; }
+.track .stp p { font-size: .85rem; color: var(--muted); }
+.part { border-top: 2px solid var(--line); padding-top: 18px; margin-top: 8px; font-family: var(--font-display); font-size: 1.15rem; color: var(--muted); }
+pre.tree { margin: 0; font-family: var(--font-mono); font-size: .86rem; line-height: 1.55; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; overflow-x: auto; }
+pre.tree .k { color: var(--accent); }
+pre.tree .m { color: var(--muted); }
+@media (max-width: 720px) {
+  .toc-groups { grid-template-columns: 1fr 1fr; }
+  .arms, .two { grid-template-columns: 1fr; }
+  h1 { font-size: 1.75rem; }
+  .figlist li { grid-template-columns: 1fr; gap: 4px; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header style="display:grid;gap:12px">
+  <div class="eyebrow">cl-relearning · ResNet-18 · CIFAR-10 / SVHN / CIFAR-100</div>
+  <h1>Does a model relearn faster what it seems to have forgotten?</h1>
+  <p class="lede">The recipe for the whole experiment: what we test, how, what is already built, and what comes next. One short reason per step.</p>
+  <nav class="toc-groups" aria-label="Sections">
+    <div><span class="grp">Start here</span><a href="#status">Where we are</a><a href="#files">Project map</a></div>
+    <div><span class="grp">The experiment</span><a href="#question">1 Question</a><a href="#arms">2 Arms</a><a href="#pipeline">3 Pipeline</a><a href="#subsets">4 Subsets</a><a href="#heads">5 Heads</a><a href="#checks">6 Checks</a></div>
+    <div><span class="grp">The plan</span><a href="#baseline">7 Baseline</a><a href="#order">8 Order of work</a><a href="#metrics">9 Metrics</a><a href="#figures">10 Figures</a><a href="#outcomes">11 Outcomes</a><a href="#size">12 Size</a></div>
+    <div><span class="grp">What we built</span><a href="#data">13 Data</a><a href="#splits">14 Splits</a><a href="#loading">15 Data loading</a><a href="#model">16 Model</a><a href="#training">17 Training</a><a href="#decisions">18 Decisions</a></div>
+  </nav>
+</header>
+
+<!-- Start here: status -->
+<section id="status">
+  <div class="eyebrow">Start here · Where we are</div>
+  <h2>Progress</h2>
+  <p><b>All code is written and tested.</b> The lab GPU is set up (PyTorch 2.15.0, CUDA 13.2, same splits), the smoke test ran at <b>7.6 s per epoch</b>, and and <b>stage 1 is complete for all 3 seeds</b> (A ≈ 94.9%, C ≈ 76.7%). The probe is calibrated (C = 0.1). <b>Stage-2 calibration is in progress</b>: learning rate 0.1 wiped almost all of A's CIFAR-10 knowledge, so gentler rates are being compared under a rule fixed in advance.</p>
+  <div class="track">
+    <div class="stp is-done"><span class="n">SETUP</span><b>Environment</b><span><span class="badge done">✓ done</span></span><p>Python 3.11, PyTorch on MPS, all three datasets (SVHN from the Internet Archive).</p></div>
+    <div class="stp is-done"><span class="n">SETUP</span><b>Explore the data</b><span><span class="badge done">✓ done</span></span><p>Notebook 01: sizes, class counts, mean/std, augmentation, loading speed (section 13).</p></div>
+    <div class="stp is-done"><span class="n">STEP 1</span><b>Validation set</b><span><span class="badge done">✓ decided</span></span><p>Held-out 10k → 5k validation + 5k never-seen.</p></div>
+    <div class="stp is-done"><span class="n">STEP 2</span><b>Fixed split</b><span><span class="badge done">✓ saved</span></span><p><span class="mono">data/splits.npz</span>, 9 splits, all checks pass (section 14).</p></div>
+    <div class="stp is-done"><span class="n">STEP 3</span><b>Write the code</b><span><span class="badge done">✓ done</span></span><p>All stages, probe and calibration modes, tested on the Mac.</p></div>
+    <div class="stp is-done"><span class="n">STEP 4</span><b>Baseline run</b><span><span class="badge done">✓ 94.98%</span></span><p>200 epochs on the lab GPU, 24 min. Kept as A's stage 1, seed 1.</p></div>
+    <div class="stp is-wip"><span class="n">STEPS 5–7</span><b>Calibrate</b><span><span class="badge wip">● stage 2</span></span><p>Probe ✓ (C = 0.1). Stage-2 lr: 0.1 done; 0.03 and 0.01 running.</p></div>
+  </div>
+  
+  <p class="table-title">Results so far</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Seed 1</th><th>Seed 2</th><th>Seed 3</th><th>Mean</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-a">A</span> stage 1: CIFAR-10 test accuracy</td><td class="num">94.98%</td><td class="num">94.89%</td><td class="num">94.74%</td><td class="num"><b>94.87%</b></td></tr>
+        <tr><td><span class="pill pill-c">C</span> stage 1: CIFAR-100 test accuracy</td><td class="num">77.09%</td><td class="num">76.30%</td><td class="num">76.61%</td><td class="num"><b>76.67%</b></td></tr>
+        <tr><td><span class="pill pill-a">A</span> CIFAR-10 probe after stage 1</td><td class="num">94.79%</td><td class="num">94.64%</td><td class="num">94.66%</td><td class="num"><b>94.7%</b></td></tr>
+        <tr><td><span class="pill pill-c">C</span> CIFAR-10 probe after stage 1</td><td class="num">71.95%</td><td class="num">71.17%</td><td class="num">70.98%</td><td class="num"><b>71.4%</b></td></tr>
+        <tr><td><span class="pill pill-b">B</span> CIFAR-10 probe at its random start (floor)</td><td class="num">35.75%</td><td class="num">36.39%</td><td class="num">34.97%</td><td class="num"><b>35.7%</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">Stage 1 is stable across seeds (A ±0.1, C ±0.4 points). The probe ranking before forgetting is A &gt; C &gt; B, as predicted: C's CIFAR-100 features give ~36 points of general knowledge above random, and A has ~23 more points of CIFAR-10-specific knowledge. Probe C = 0.1, chosen on validation (0.01 → 94.40%, 0.1 → 94.36%, 1 → 94.16%, 10 → 93.32%; tied with the best, not at the edge of the range).</p>
+
+  <p class="table-title">Stage-2 calibration (A, seed 1, 20 SVHN epochs, validation)</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Learning rate</th><th>SVHN at the end</th><th>A's old head</th><th>CIFAR-10 probe</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="num">0.1</td><td class="num">97.1%</td><td class="num">12.4% after only 500 steps; 13.5% at the end</td><td class="num">94% → ~39% within 1,000 steps; 34.5% at the end</td><td>done</td></tr>
+        <tr><td class="num">0.03</td><td colspan="3">running (A and B)</td><td><span class="badge wip">● running</span></td></tr>
+        <tr><td class="num">0.01</td><td colspan="3">running (A and B)</td><td><span class="badge wip">● running</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why"><b>Finding:</b> at learning rate 0.1, A's probe falls to ~39%, only a few points above an untrained network (35.7%). A doesn't just look forgotten; its CIFAR-10 knowledge is largely gone, which would leave little to relearn from. <b>Rule fixed before the gentler runs:</b> use the gentlest rate in {0.1, 0.03, 0.01} where, after the 20-epoch calibration, A reaches SVHN ≥ 95% with its old head ≤ 15%, and B (from random weights) also reaches SVHN ≥ 95%. The stage-2 length then comes from that rate's curve. Stage 1 is unaffected: each stage has its own optimizer and settings.</p>
+
+  <p class="table-title">Smoke tests</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Mac (MPS)</th><th>Lab GPU (CUDA, shared, GPU 1)</th></tr></thead>
+      <tbody>
+        <tr><td>One stage-1 epoch (incl. test)</td><td class="num">26.2 s</td><td class="num"><b>7.6 s</b> (~3.4× faster)</td></tr>
+        <tr><td>Test accuracy, start → 1 epoch</td><td class="num">12.2% → 35.0%</td><td class="num">12.1% → 37.0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">The two machines differ slightly, which is why every real run uses the lab GPU only.</p>
+
+  <p class="table-title">Run book: every run, in order (lab GPU, inside tmux)</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>What</th><th>Command (<span class="mono">python src/…</span>, add <span class="mono">--device cuda:1</span>)</th><th>Needs</th><th>GPU time</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td><b>Baseline</b> = A, stage 1, seed 1 <span class="badge done">✓ 94.98%</span></td><td class="mono">run_stage1.py --arm A --seed 1</td><td>—</td><td class="num">~25 min</td></tr>
+        <tr><td class="num">2</td><td>Check the baseline (~94–95%) <span class="badge done">✓ healthy</span></td><td>logs → <span class="mono">02_baseline.ipynb</span></td><td>1</td><td>—</td></tr>
+        <tr><td class="num">3</td><td>Rest of stage 1: C seed 1; A, C seeds 2–3 <span class="badge done">✓ done</span></td><td class="mono">run_stage1.py --arm C --seed 1 …</td><td>2 healthy</td><td class="num">5 × ~25 min</td></tr>
+        <tr><td class="num">4</td><td>Choose the probe's C on validation, write it in <span class="mono">probe.yaml</span> <span class="badge done">✓ C = 0.1</span></td><td class="mono">probe.py --arm A --stage 1 --seed 1 --choose-c</td><td>1</td><td class="num">~1 min</td></tr>
+        <tr><td class="num">5</td><td>Probe every arm after stage 1 (B at its start) <span class="badge done">✓ done</span></td><td class="mono">probe.py --arm A --stage 1 --seed 1 · --arm B --stage 0 …</td><td>3, 4</td><td class="num">~1 min each</td></tr>
+        <tr><td class="num">6</td><td><b>Calibrate stage 2</b> <span class="badge wip">● lr 0.03 / 0.01 running</span>: 20 SVHN epochs, A's old head + probe on validation, per learning rate. Apply the rule, then choose <span class="mono">steps</span>; write both in <span class="mono">stage2.yaml</span></td><td class="mono">run_stage2.py --arm A --seed 1 --calibrate</td><td>1, 4</td><td class="num">~10 min</td></tr>
+        <tr><td class="num">7</td><td>Stage 2, seed 1: A, B, C</td><td class="mono">run_stage2.py --arm A --seed 1 …</td><td>6</td><td class="num">3 × ~10 min</td></tr>
+        <tr><td class="num">8</td><td><b>Calibrate stage 3</b>: each lr in <span class="mono">lr_choices</span>, scored on validation; write lr, set <span class="mono">calibrated: true</span></td><td class="mono">run_stage3.py --arm A --seed 1 --subset never_seen --calibrate --lr 0.03</td><td>7</td><td class="num">~2 min per lr</td></tr>
+        <tr><td class="num">9</td><td>Stage 3, seed 1: 3 arms × 2 subsets</td><td class="mono">run_stage3.py --arm A --seed 1 --subset a_seen …</td><td>8</td><td class="num">6 × ~2 min</td></tr>
+        <tr><td class="num">10</td><td>Stage 2 + 3 for seeds 2 and 3</td><td>same commands, <span class="mono">--seed 2</span>, <span class="mono">--seed 3</span></td><td>3, 8</td><td class="num">~1.5 h</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why"><b>Every config change</b> is made on the Mac and sent with <span class="mono">rsync … configs/ labblackwell:~/ege/cl-relearning/configs/</span>; code changes likewise with <span class="mono">src/</span>. Never change a setting once real runs have used it. Calibration logs go to <span class="mono">logs/calibration/</span> and never mix with results.</p>
+</section>
+
+<!-- Start here: project map -->
+<section id="files">
+  <div class="eyebrow">Start here · Project map</div>
+  <h2>Every file, what it does, and how far along it is</h2>
+  <figure>
+    <svg viewBox="0 0 980 300" role="img" aria-label="How the files connect. make_splits.py writes data/splits.npz once. data.py reads it and serves loaders; model.py builds the network; utils.py handles device, seeds, checkpoints and logs. The run scripts for stages 1, 2 and 3 use those parts plus train.py, evaluate.py and probe.py, and write checkpoints and logs. metrics.py and notebooks 02 to 04 read the logs and make the figures.">
+      <defs><marker id="arr7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <g font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" class="faccent">
+          <text x="80" y="18" text-anchor="middle">ONCE</text><text x="300" y="18" text-anchor="middle">BUILDING BLOCKS</text>
+          <text x="530" y="18" text-anchor="middle">RUNS</text><text x="720" y="18" text-anchor="middle">OUTPUTS</text><text x="890" y="18" text-anchor="middle">ANALYSIS</text>
+        </g>
+        <rect x="10" y="40" width="140" height="44" rx="6" class="fa-soft sa" stroke-width="1.5"/><text x="80" y="60" text-anchor="middle" font-weight="600">make_splits.py</text><text x="80" y="76" text-anchor="middle" font-size="10.5" class="fmuted">✓ done</text>
+        <line x1="80" y1="84" x2="80" y2="120" stroke="currentColor" marker-end="url(#arr7)"/>
+        <rect x="10" y="124" width="140" height="44" rx="6" class="fa-soft sa" stroke-width="1.5"/><text x="80" y="144" text-anchor="middle" font-weight="600">data/splits.npz</text><text x="80" y="160" text-anchor="middle" font-size="10.5" class="fmuted">✓ saved</text>
+        <line x1="150" y1="146" x2="226" y2="70" stroke="currentColor" marker-end="url(#arr7)"/>
+
+        <rect x="230" y="40" width="140" height="40" rx="6" class="fa-soft sa" stroke-width="1.5"/><text x="300" y="58" text-anchor="middle" font-weight="600">data.py</text><text x="300" y="73" text-anchor="middle" font-size="10.5" class="fmuted">✓ done · loaders</text>
+        <rect x="230" y="88" width="140" height="40" rx="6" class="fa-soft sa" stroke-width="1.5"/><text x="300" y="106" text-anchor="middle" font-weight="600">model.py</text><text x="300" y="121" text-anchor="middle" font-size="10.5" class="fmuted">✓ done · ResNet + heads</text>
+        <rect x="230" y="136" width="140" height="40" rx="6" class="fa-soft sa" stroke-width="1.5"/><text x="300" y="154" text-anchor="middle" font-weight="600">utils.py</text><text x="300" y="169" text-anchor="middle" font-size="10.5" class="fmuted">✓ done · device, saving, logs</text>
+        <rect x="230" y="184" width="140" height="104" rx="6" fill="none" stroke="currentColor" stroke-dasharray="5 4"/><text x="300" y="206" text-anchor="middle" font-weight="600">train.py ✓</text><text x="300" y="230" text-anchor="middle" font-weight="600">evaluate.py ✓</text><text x="300" y="254" text-anchor="middle" font-weight="600">probe.py ✓</text><text x="300" y="278" text-anchor="middle" font-size="10.5" class="fmuted">all done</text>
+        <line x1="370" y1="150" x2="456" y2="150" stroke="currentColor" marker-end="url(#arr7)"/>
+
+        <rect x="460" y="100" width="140" height="100" rx="6" fill="none" stroke="currentColor" stroke-dasharray="5 4"/><text x="530" y="126" text-anchor="middle" font-weight="600">run_stage1.py</text><text x="530" y="146" text-anchor="middle" font-weight="600">run_stage2.py</text><text x="530" y="166" text-anchor="middle" font-weight="600">run_stage3.py</text><text x="530" y="188" text-anchor="middle" font-size="10.5" class="fmuted">✓ done · stage 1 running</text>
+        <line x1="600" y1="150" x2="646" y2="150" stroke="currentColor" marker-end="url(#arr7)"/>
+
+        <rect x="650" y="100" width="140" height="100" rx="6" class="fb-soft"/><text x="720" y="132" text-anchor="middle" font-weight="600">checkpoints/</text><text x="720" y="148" text-anchor="middle" font-size="10.5" class="fmuted">model after each stage</text><text x="720" y="172" text-anchor="middle" font-weight="600">logs/</text><text x="720" y="188" text-anchor="middle" font-size="10.5" class="fmuted">metrics per evaluation</text>
+        <line x1="790" y1="150" x2="816" y2="150" stroke="currentColor" marker-end="url(#arr7)"/>
+
+        <rect x="820" y="100" width="150" height="100" rx="6" fill="none" stroke="currentColor" stroke-dasharray="5 4"/><text x="895" y="126" text-anchor="middle" font-weight="600">metrics.py</text><text x="895" y="146" text-anchor="middle" font-weight="600">notebooks 02–04</text><text x="895" y="166" text-anchor="middle" font-weight="600">→ figures/</text><text x="895" y="188" text-anchor="middle" font-size="10.5" class="fmuted">○ to do</text>
+      </g>
+    </svg>
+    <figcaption>Solid blue = done and tested · dashed = still empty. Data flows left to right: the split is made once, the building blocks are shared by every run, and analysis only reads saved outputs.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What it does</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">check_env.py</td><td>Checks Python, PyTorch, MPS and that all datasets load</td><td><span class="badge done">✓ done</span></td></tr>
+        <tr><td class="mono">notebooks/01_datasets.ipynb</td><td>Dataset exploration (section 13)</td><td><span class="badge done">✓ done</span></td></tr>
+        <tr><td class="mono">src/make_splits.py</td><td>Makes and checks the fixed splits once; saves <span class="mono">data/splits.npz</span> (section 14)</td><td><span class="badge done">✓ done · ran</span></td></tr>
+        <tr><td class="mono">src/data.py</td><td>Datasets, transforms and one loader function per stage (section 15)</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/model.py</td><td>ResNet-18 with the CIFAR stem and named heads (section 16)</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/utils.py</td><td>MPS device (stops if missing), seeding, checkpoints with heads and provenance, JSON-line metric logs + run metadata, configs</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/train.py</td><td>The shared training loop: SGD on backbone + active head, warmup/cosine/constant LR, measures at chosen steps, crash-safe resume</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/evaluate.py</td><td>Accuracy and loss in eval mode without changing the model; <span class="mono">evaluate_head</span> for A's old-head test</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/probe.py</td><td>Linear probe: frozen backbone (eval mode), 512 features once, standardized logistic regression trained on never-seen, scored on test (or validation). Also probes saved models, and <span class="mono">--choose-c</span></td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/run_stage1.py</td><td>Stage 1 for one arm and seed (<span class="mono">--arm A --seed 1</span>); <span class="mono">--smoke</span> for a 1-epoch test; arm B saves its starting weights; resumes if interrupted</td><td><span class="badge done">✓ done · smoke test passed</span></td></tr>
+        <tr><td class="mono">src/run_stage2.py</td><td>Stage 2 (SVHN): SVHN test, old head (A: CIFAR-10, C: CIFAR-100), probe; <span class="mono">--calibrate</span> to choose the length</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/run_stage3.py</td><td>Stage 3 (relearning) per arm and subset, dense measuring early; <span class="mono">--calibrate --lr X</span> to choose the learning rate</td><td><span class="badge done">✓ done · tested</span></td></tr>
+        <tr><td class="mono">src/metrics.py</td><td>Steps to 50/70/80%, area under the curve, aligned curves, memory effect</td><td><span class="badge todo">○ to do</span></td></tr>
+        <tr><td class="mono">configs/*.yaml</td><td>Shared recipe (<span class="mono">base</span>) + per-stage and probe settings</td><td><span class="badge wip">● stage 2 steps, stage 3 lr, probe C: set by calibration</span></td></tr>
+        <tr><td class="mono">notebooks/02 · 03 · 04</td><td>Baseline check · calibration · final results and figures</td><td><span class="badge todo">○ to do</span></td></tr>
+        <tr><td class="mono">docs/</td><td>This page, and <a href="https://claude.ai/artifact/1dEJDaCKRv3BR7vxzTD1YK">How a CNN sees a picture</a></td><td><span class="badge done">✓ kept up to date</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="part">The experiment</div>
+
+<!-- 1. Question -->
+<section id="question">
+  <div class="eyebrow">1 · The question</div>
+  <div class="question">
+    <strong>If a model learns something, then seems to forget it, does it learn it again faster than a model that never knew it?</strong>
+    <p class="why">Analogy: you learned French at school, then spoke only Spanish for years. Is relearning French easier for you than for someone who never studied it? And is that because you remember <b>French</b>, or just because you have studied <b>a language</b> before?</p>
+  </div>
+</section>
+
+<!-- 2. Arms -->
+<section id="arms">
+  <div class="eyebrow">2 · The three models (arms)</div>
+  <div class="arms">
+    <div class="arm arm-a">
+      <span class="tag">A · learned it</span>
+      <h3>Pretrained on CIFAR-10</h3>
+      <p>The data we care about. In the analogy, studied French.</p>
+    </div>
+    <div class="arm arm-b">
+      <span class="tag">B · never learned</span>
+      <h3>Random weights</h3>
+      <p>No pretraining at all. In the analogy, never studied any language.</p>
+    </div>
+    <div class="arm arm-c">
+      <span class="tag">C · learned something similar</span>
+      <h3>Pretrained on CIFAR-100</h3>
+      <p>Similar photos, different data. In the analogy, studied Italian.</p>
+    </div>
+  </div>
+  <p class="why"><b>Why C exists:</b> A beating B could just mean any pretraining helps. C has similar pretraining without CIFAR-10, so if A also beats C, A remembers CIFAR-10 specifically.</p>
+  <p class="why"><b>The datasets in detail:</b> sizes, quirks and what the exploration found are in section 13.</p>
+</section>
+
+<!-- 3. Pipeline -->
+<section id="pipeline">
+  <div class="eyebrow">3 · The pipeline, for one seed</div>
+  <h2>Learn, overwrite, check, relearn</h2>
+  <p>Read each row left to right: that is one arm's whole life in one seed. The step numbers match the order of work in section 8. The bottom band says what is recorded at each step.</p>
+  <figure>
+    <svg viewBox="0 0 1000 580" role="img" aria-label="Pipeline for one seed. Step 8: A pretrains on CIFAR-10 and C on CIFAR-100, B skips. Step 9: all three train on SVHN. Step 10: checks on the frozen backbones. Step 11: each arm relearns CIFAR-10 twice, on the A-seen and the never-seen 5k subset. A band at the bottom lists what is measured at each step.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- column headers -->
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" fill="currentColor">
+        <g class="faccent" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" font-weight="500">
+          <text x="205" y="18" text-anchor="middle">STEP 8</text>
+          <text x="425" y="18" text-anchor="middle">STEP 9</text>
+          <text x="625" y="18" text-anchor="middle">STEP 10</text>
+          <text x="840" y="18" text-anchor="middle">STEP 11</text>
+        </g>
+        <g font-size="14" font-weight="600">
+          <text x="205" y="38" text-anchor="middle">Stage 1 · Learn</text>
+          <text x="425" y="38" text-anchor="middle">Stage 2 · Overwrite</text>
+          <text x="625" y="38" text-anchor="middle">Check</text>
+          <text x="840" y="38" text-anchor="middle">Stage 3 · Relearn</text>
+        </g>
+        <g font-size="11" class="fmuted">
+          <text x="205" y="56" text-anchor="middle">train on 40k images</text>
+          <text x="425" y="56" text-anchor="middle">73k SVHN, same steps for all</text>
+          <text x="625" y="56" text-anchor="middle">backbone frozen</text>
+          <text x="840" y="56" text-anchor="middle">fresh CIFAR-10 head · 5k images</text>
+        </g>
+      </g>
+
+      <!-- Row A -->
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="20" y="80" width="60" height="80" rx="6" class="fa-soft"/>
+        <text x="50" y="128" text-anchor="middle" font-size="22" font-weight="600" class="fa">A</text>
+        <rect x="110" y="90" width="190" height="60" rx="6" fill="none" class="sa" stroke-width="1.6"/>
+        <text x="205" y="116" text-anchor="middle" font-weight="600">CIFAR-10 (40k)</text>
+        <text x="205" y="134" text-anchor="middle" class="fmuted">+ CIFAR-10 head (kept)</text>
+        <line x1="300" y1="120" x2="336" y2="120" stroke="currentColor" marker-end="url(#arr)"/>
+        <text x="318" y="112" text-anchor="middle" font-size="10" class="fmuted">S1</text>
+        <rect x="340" y="90" width="170" height="60" rx="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="425" y="116" text-anchor="middle" font-weight="600">SVHN</text>
+        <text x="425" y="134" text-anchor="middle" class="fmuted">+ SVHN head</text>
+        <line x1="510" y1="120" x2="546" y2="120" stroke="currentColor" marker-end="url(#arr)"/>
+        <text x="528" y="112" text-anchor="middle" font-size="10" class="fmuted">S2</text>
+        <rect x="550" y="82" width="150" height="76" rx="6" fill="none" stroke="currentColor" stroke-dasharray="4 3"/>
+        <text x="625" y="106" text-anchor="middle">SVHN accuracy</text>
+        <text x="625" y="124" text-anchor="middle">linear probe</text>
+        <text x="625" y="142" text-anchor="middle" font-weight="600" class="fa">old-head check</text>
+        <path d="M700 120 H720 V101 H736" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+        <path d="M720 120 V139 H736" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+        <rect x="740" y="86" width="200" height="30" rx="5" fill="none" class="sa" stroke-width="1.3"/>
+        <text x="840" y="106" text-anchor="middle">A-seen 5k → curve</text>
+        <rect x="740" y="124" width="200" height="30" rx="5" fill="none" class="sa" stroke-width="1.3"/>
+        <text x="840" y="144" text-anchor="middle">never-seen 5k → curve</text>
+      </g>
+
+      <!-- Row B -->
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="20" y="190" width="60" height="80" rx="6" class="fb-soft"/>
+        <text x="50" y="238" text-anchor="middle" font-size="22" font-weight="600" class="fb">B</text>
+        <rect x="110" y="200" width="190" height="60" rx="6" fill="none" class="sb" stroke-width="1.3" stroke-dasharray="5 4"/>
+        <text x="205" y="226" text-anchor="middle" font-weight="600">skipped</text>
+        <text x="205" y="244" text-anchor="middle" class="fmuted">random weights</text>
+        <line x1="300" y1="230" x2="336" y2="230" stroke="currentColor" marker-end="url(#arr)"/>
+        <rect x="340" y="200" width="170" height="60" rx="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="425" y="226" text-anchor="middle" font-weight="600">SVHN</text>
+        <text x="425" y="244" text-anchor="middle" class="fmuted">+ SVHN head</text>
+        <line x1="510" y1="230" x2="546" y2="230" stroke="currentColor" marker-end="url(#arr)"/>
+        <text x="528" y="222" text-anchor="middle" font-size="10" class="fmuted">S2</text>
+        <rect x="550" y="200" width="150" height="60" rx="6" fill="none" stroke="currentColor" stroke-dasharray="4 3"/>
+        <text x="625" y="225" text-anchor="middle">SVHN accuracy</text>
+        <text x="625" y="243" text-anchor="middle">linear probe</text>
+        <path d="M700 230 H720 V211 H736" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+        <path d="M720 230 V249 H736" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+        <rect x="740" y="196" width="200" height="30" rx="5" fill="none" class="sb" stroke-width="1.3"/>
+        <text x="840" y="216" text-anchor="middle">A-seen 5k → curve</text>
+        <rect x="740" y="234" width="200" height="30" rx="5" fill="none" class="sb" stroke-width="1.3"/>
+        <text x="840" y="254" text-anchor="middle">never-seen 5k → curve</text>
+      </g>
+
+      <!-- Row C -->
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="20" y="300" width="60" height="80" rx="6" class="fc-soft"/>
+        <text x="50" y="348" text-anchor="middle" font-size="22" font-weight="600" class="fc">C</text>
+        <rect x="110" y="310" width="190" height="60" rx="6" fill="none" class="sc" stroke-width="1.6"/>
+        <text x="205" y="336" text-anchor="middle" font-weight="600">CIFAR-100 (40k)</text>
+        <text x="205" y="354" text-anchor="middle" class="fmuted">+ CIFAR-100 head</text>
+        <line x1="300" y1="340" x2="336" y2="340" stroke="currentColor" marker-end="url(#arr)"/>
+        <text x="318" y="332" text-anchor="middle" font-size="10" class="fmuted">S1</text>
+        <rect x="340" y="310" width="170" height="60" rx="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="425" y="336" text-anchor="middle" font-weight="600">SVHN</text>
+        <text x="425" y="354" text-anchor="middle" class="fmuted">+ SVHN head</text>
+        <line x1="510" y1="340" x2="546" y2="340" stroke="currentColor" marker-end="url(#arr)"/>
+        <text x="528" y="332" text-anchor="middle" font-size="10" class="fmuted">S2</text>
+        <rect x="550" y="310" width="150" height="60" rx="6" fill="none" stroke="currentColor" stroke-dasharray="4 3"/>
+        <text x="625" y="335" text-anchor="middle">SVHN accuracy</text>
+        <text x="625" y="353" text-anchor="middle">linear probe</text>
+        <path d="M700 340 H720 V321 H736" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+        <path d="M720 340 V359 H736" fill="none" stroke="currentColor" marker-end="url(#arr)"/>
+        <rect x="740" y="306" width="200" height="30" rx="5" fill="none" class="sc" stroke-width="1.3"/>
+        <text x="840" y="326" text-anchor="middle">A-seen 5k → curve</text>
+        <rect x="740" y="344" width="200" height="30" rx="5" fill="none" class="sc" stroke-width="1.3"/>
+        <text x="840" y="364" text-anchor="middle">never-seen 5k → curve</text>
+      </g>
+
+      <!-- Measured-here band -->
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11.5" fill="currentColor">
+        <line x1="20" y1="402" x2="980" y2="402" class="sline" stroke-width="1"/>
+        <text x="20" y="424" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" font-weight="500" class="faccent">MEASURED</text>
+        <text x="20" y="438" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" font-weight="500" class="faccent">HERE</text>
+
+        <rect x="110" y="412" width="190" height="128" rx="6" class="fb-soft"/>
+        <text x="122" y="432">A: CIFAR-10 test acc</text>
+        <text x="122" y="450" class="fmuted">= "fully learned" reference</text>
+        <text x="122" y="470">C: CIFAR-100 test acc</text>
+        <text x="122" y="490">train loss (A, C)</text>
+        <text x="122" y="510">end: CIFAR-10 probe</text>
+        <text x="122" y="528" class="fmuted">(all arms; B at random init)</text>
+
+        <rect x="340" y="412" width="170" height="128" rx="6" class="fb-soft"/>
+        <text x="352" y="432">SVHN test acc (all)</text>
+        <text x="352" y="452">A: old-head CIFAR-10</text>
+        <text x="352" y="470" class="fmuted">every N steps = forgetting</text>
+        <text x="352" y="490">CIFAR-10 probe</text>
+        <text x="352" y="508" class="fmuted">every M steps (all)</text>
+
+        <rect x="550" y="412" width="150" height="128" rx="6" class="fa-soft"/>
+        <text x="562" y="432" font-weight="600">probe acc (all)</text>
+        <text x="562" y="452" font-weight="600">old-head acc (A)</text>
+        <text x="562" y="472" font-weight="600">SVHN acc (all)</text>
+        <text x="562" y="496" class="fmuted">= where stage 3</text>
+        <text x="562" y="512" class="fmuted">starts from</text>
+
+        <rect x="740" y="412" width="200" height="128" rx="6" class="fb-soft"/>
+        <text x="752" y="432">CIFAR-10 test acc + loss</text>
+        <text x="752" y="450" class="fmuted">every ~25 steps early, then less</text>
+        <text x="752" y="470">steps to 50 / 70 / 80%</text>
+        <text x="752" y="490">area under curve</text>
+        <text x="752" y="510">final acc + loss</text>
+        <text x="752" y="528" class="fmuted">for both subsets</text>
+      </g>
+      <text x="500" y="570" text-anchor="middle" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" class="fmuted">S1, S2 = each arm's saved stage-1 and stage-2 checkpoints. Both stage-3 runs of an arm start from the same stage-2 checkpoint, and all arms use the same 5k images within a seed.</text>
+    </svg>
+    <figcaption>One seed = 11 training runs: 2 in stage 1 (A, C), 3 in stage 2, 6 in stage 3 (3 arms × 2 subsets). The checks only train small probe heads. "A-seen" means the images A trained on in stage 1; B and C have never seen them (section 4).</figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Step</th><th>Stage</th><th>What happens</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="num">8</td><td><b>1 · Learn</b></td><td>A learns CIFAR-10, C learns CIFAR-100, B skips.</td><td>A gets something to remember; C gets comparable pretraining without it.</td></tr>
+        <tr><td class="num">9</td><td><b>2 · Overwrite</b></td><td>All three train on SVHN (house numbers).</td><td>Very different data that should make A look like it forgot CIFAR-10.</td></tr>
+        <tr><td class="num">10</td><td><b>Check</b></td><td>Old-head test (A), linear probe and SVHN accuracy (all).</td><td>Did A really look forgotten? Is knowledge still hidden in the backbone? Were all arms overwritten equally?</td></tr>
+        <tr><td class="num">11</td><td><b>3 · Relearn</b></td><td>Fresh CIFAR-10 head, warmup then constant learning rate, train on 5k CIFAR-10 images, track test accuracy.</td><td>The actual test: who recovers fastest?</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 4. Relearning subsets -->
+<section id="subsets">
+  <div class="eyebrow">4 · The two relearning subsets</div>
+  <h2>"A-seen" is about where the images come from</h2>
+  <p>Stage 3 runs twice per arm, on two different 5k CIFAR-10 subsets. They are named after <b>A</b>, because A is the only arm that ever trained on CIFAR-10.</p>
+  <figure class="small">
+    <svg viewBox="0 0 860 210" role="img" aria-label="CIFAR-10 training images are split into a 40k pretrain pool, which A trains on in stage 1 and which supplies the A-seen subset, and a 10k held-out pool that no arm trains on, which supplies the never-seen subset.">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="10" y="75" width="150" height="60" rx="6" fill="none" stroke="currentColor"/>
+        <text x="85" y="101" text-anchor="middle" font-weight="600">CIFAR-10 train</text>
+        <text x="85" y="119" text-anchor="middle" class="fmuted">50,000 images</text>
+
+        <path d="M160 105 H185 V50 H226" fill="none" stroke="currentColor" marker-end="url(#arr3)"/>
+        <path d="M185 105 V160 H226" fill="none" stroke="currentColor" marker-end="url(#arr3)"/>
+
+        <rect x="230" y="20" width="290" height="60" rx="6" class="fa-soft sa" stroke-width="1.5"/>
+        <text x="375" y="45" text-anchor="middle" font-weight="600">Pretrain pool · 40,000</text>
+        <text x="375" y="64" text-anchor="middle" class="fmuted">A trains on these in stage 1</text>
+
+        <rect x="230" y="130" width="290" height="60" rx="6" fill="none" stroke="currentColor" stroke-dasharray="5 4"/>
+        <text x="375" y="155" text-anchor="middle" font-weight="600">Held-out pool · 10,000</text>
+        <text x="375" y="174" text-anchor="middle" class="fmuted">no arm trains on these before stage 3</text>
+
+        <line x1="520" y1="50" x2="616" y2="50" stroke="currentColor" marker-end="url(#arr3)"/>
+        <text x="568" y="42" text-anchor="middle" font-size="11" class="fmuted">draw 5k</text>
+        <line x1="520" y1="160" x2="616" y2="160" stroke="currentColor" marker-end="url(#arr3)"/>
+        <text x="568" y="152" text-anchor="middle" font-size="11" class="fmuted">draw 5k</text>
+
+        <rect x="620" y="25" width="230" height="50" rx="6" fill="none" class="sa" stroke-width="1.5"/>
+        <text x="735" y="47" text-anchor="middle" font-weight="600">A-seen subset</text>
+        <text x="735" y="64" text-anchor="middle" font-size="11" class="fmuted">A saw them · B, C did not</text>
+
+        <rect x="620" y="135" width="230" height="50" rx="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="735" y="157" text-anchor="middle" font-weight="600">never-seen subset</text>
+        <text x="735" y="174" text-anchor="middle" font-size="11" class="fmuted">new to every arm</text>
+      </g>
+    </svg>
+    <figcaption>Only A has seen the A-seen images. For B and C, both subsets are new: B never trained on CIFAR-10, and C trained on CIFAR-100, which shares no images with CIFAR-10. The held-out 10k is split in half: 5k validation and 5k never-seen (section 14).</figcaption>
+  </figure>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Subset</th><th><span class="pill pill-a">A</span></th><th><span class="pill pill-b">B</span></th><th><span class="pill pill-c">C</span></th></tr></thead>
+      <tbody>
+        <tr><td><b>A-seen</b> 5k</td><td><b>seen in stage 1</b></td><td>new</td><td>new</td></tr>
+        <tr><td><b>never-seen</b> 5k</td><td>new</td><td>new</td><td>new</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>Why B and C run on both subsets</h3>
+      <p>They are the control for <b>subset difficulty</b>. If A relearns faster on A-seen than on never-seen, it could be memory of those images, or A-seen could just be an easier subset.</p>
+      <p class="why">B and C can't remember those images, so any gap they show between the two subsets comes from difficulty alone.</p>
+    </div>
+    <div class="card">
+      <h3>How the memory effect is computed</h3>
+      <p><span class="mono">gap = result on A-seen − result on never-seen</span></p>
+      <p><span class="mono">memory effect = gap(A) − gap(B)</span></p>
+      <p class="why"><b>Example:</b> gap(A) = +4 points, gap(B) = +1 point. Then 3 points are A remembering those images, and 1 point is A-seen simply being easier.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Backbone + head -->
+<section id="heads">
+  <div class="eyebrow">5 · Backbone and heads</div>
+  <h2>One backbone, swappable heads</h2>
+  <figure class="small">
+    <svg viewBox="0 0 860 150" role="img" aria-label="An image goes through the backbone, which produces 512 features; a small linear head turns them into one score per class. Knowledge lives in the backbone.">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="13" fill="currentColor">
+        <rect x="10" y="45" width="90" height="60" rx="6" fill="none" stroke="currentColor"/>
+        <text x="55" y="72" text-anchor="middle">image</text>
+        <text x="55" y="90" text-anchor="middle" font-size="11" class="fmuted">32×32×3</text>
+        <line x1="100" y1="75" x2="136" y2="75" stroke="currentColor" marker-end="url(#arr2)"/>
+        <rect x="140" y="25" width="300" height="100" rx="8" class="fa-soft sa" stroke-width="1.5"/>
+        <text x="290" y="68" text-anchor="middle" font-weight="600">Backbone</text>
+        <text x="290" y="88" text-anchor="middle" font-size="11" class="fmuted">~11M parameters · where knowledge lives</text>
+        <line x1="440" y1="75" x2="496" y2="75" stroke="currentColor" marker-end="url(#arr2)"/>
+        <text x="468" y="64" text-anchor="middle" font-size="11" class="fmuted">512 features</text>
+        <rect x="500" y="45" width="130" height="60" rx="6" fill="none" class="sc" stroke-width="1.5"/>
+        <text x="565" y="72" text-anchor="middle" font-weight="600">Head</text>
+        <text x="565" y="90" text-anchor="middle" font-size="11" class="fmuted">1 linear layer</text>
+        <line x1="630" y1="75" x2="676" y2="75" stroke="currentColor" marker-end="url(#arr2)"/>
+        <rect x="680" y="45" width="170" height="60" rx="6" fill="none" stroke="currentColor"/>
+        <text x="765" y="72" text-anchor="middle">class scores</text>
+        <text x="765" y="90" text-anchor="middle" font-size="11" class="fmuted">10 or 100</text>
+      </g>
+    </svg>
+    <figcaption>Each dataset has its own head because the labels differ (output 3 is "cat" in CIFAR-10 but "digit 3" in SVHN). In stage 3 every arm gets a fresh head, so only the backbones are compared.</figcaption>
+  </figure>
+</section>
+
+<!-- 6. Checks -->
+<section id="checks">
+  <div class="eyebrow">6 · The check before relearning</div>
+  <h2>Does A only <em>look</em> forgotten?</h2>
+  <div class="two">
+    <div class="card">
+      <h3>Old-head test (A only)</h3>
+      <p>Put A's saved CIFAR-10 head back on its post-SVHN backbone and test it.</p>
+      <p class="why"><b>Why:</b> shows how forgotten A looks. Should be close to 10% (chance) if stage 2 worked.</p>
+    </div>
+    <div class="card">
+      <h3>Linear probe (all arms)</h3>
+      <p>Freeze the backbone, train only a new head on the never-seen 5k images, test it.</p>
+      <p class="why"><b>Why:</b> shows how much CIFAR-10 knowledge is still inside, with no relearning mixed in.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Old head</th><th>Probe</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>low</td><td>high</td><td>Hidden retention: features survived, only the link to the old head broke.</td></tr>
+        <tr><td>low</td><td>low</td><td>The features themselves were overwritten.</td></tr>
+        <tr><td>high</td><td>high</td><td>Stage 2 was too short. Train SVHN longer before running the experiment.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="part">The plan</div>
+
+<!-- 7. Baseline -->
+<section id="baseline">
+  <div class="eyebrow">7 · The baseline (step 4)</div>
+  <h2>One normal training run before the real experiment</h2>
+  <p>The baseline is a single ResNet-18 trained from scratch on the 40k CIFAR-10 pretrain pool. It is not one of the arms and not part of the comparison. It is a test run that tells you whether the code works, what "fully learned" looks like, and how long everything will take. Trained exactly like stage 1, it also becomes A's stage 1 for seed 1.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 260" role="img" aria-label="The baseline trains ResNet-18 on the 40k CIFAR-10 pretrain pool. It produces four things: proof that the pipeline works, the reference accuracy used for thresholds, the time per epoch used for the cost estimate, and a checkpoint that becomes A's stage 1 for seed 1.">
+      <defs>
+        <marker id="arr5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="10" y="95" width="170" height="70" rx="6" fill="none" stroke="currentColor"/>
+        <text x="95" y="122" text-anchor="middle" font-weight="600">CIFAR-10 pool</text>
+        <text x="95" y="140" text-anchor="middle" class="fmuted">40k images (fixed split)</text>
+        <line x1="180" y1="130" x2="226" y2="130" stroke="currentColor" marker-end="url(#arr5)"/>
+
+        <rect x="230" y="80" width="230" height="100" rx="8" class="fa-soft sa" stroke-width="1.5"/>
+        <text x="345" y="112" text-anchor="middle" font-weight="600" font-size="13">ResNet-18 + CIFAR-10 head</text>
+        <text x="345" y="132" text-anchor="middle" class="fmuted">CIFAR stem · shared recipe</text>
+        <text x="345" y="150" text-anchor="middle" class="fmuted">fixed epochs · cosine LR · MPS</text>
+        <line x1="460" y1="130" x2="490" y2="130" stroke="currentColor"/>
+
+        <path d="M490 130 V38 H546" fill="none" stroke="currentColor" marker-end="url(#arr5)"/>
+        <path d="M490 130 V98 H546" fill="none" stroke="currentColor" marker-end="url(#arr5)"/>
+        <path d="M490 130 V162 H546" fill="none" stroke="currentColor" marker-end="url(#arr5)"/>
+        <path d="M490 130 V222 H546" fill="none" stroke="currentColor" marker-end="url(#arr5)"/>
+
+        <rect x="550" y="16" width="400" height="44" rx="6" class="fb-soft"/>
+        <text x="564" y="35" font-weight="600">Pipeline works end to end</text>
+        <text x="564" y="52" class="fmuted">model, data, training, eval, probe, checkpoints on MPS</text>
+
+        <rect x="550" y="76" width="400" height="44" rx="6" class="fb-soft"/>
+        <text x="564" y="95" font-weight="600">Reference accuracy (expect ~92–95%)</text>
+        <text x="564" y="112" class="fmuted">"fully learned" level · confirms the 50/70/80% thresholds</text>
+
+        <rect x="550" y="140" width="400" height="44" rx="6" class="fb-soft"/>
+        <text x="564" y="159" font-weight="600">Time per epoch</text>
+        <text x="564" y="176" class="fmuted">total cost · decides: retrain stage 1 per seed? one stage-3 LR or a sweep?</text>
+
+        <rect x="550" y="200" width="400" height="44" rx="6" class="fa-soft"/>
+        <text x="564" y="219" font-weight="600">Checkpoint = A's stage 1 for seed 1</text>
+        <text x="564" y="236" class="fmuted">only if trained exactly like stage 1 · then reused in step 5</text>
+      </g>
+    </svg>
+    <figcaption>One run, four outputs. The last one means the baseline isn't wasted time: it becomes the first real checkpoint of the experiment.</figcaption>
+  </figure>
+
+  <p class="table-title">How to train it</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Data</td><td>40k CIFAR-10 pretrain pool from the saved split (step 2)</td><td>Same data A uses in stage 1; held-out images stay unseen.</td></tr>
+        <tr><td>Model</td><td>ResNet-18, CIFAR stem (3×3 stride-1 first conv, no max-pool), backbone and head as separate parts</td><td>The ImageNet stem shrinks 32×32 images too much. Separate parts are needed for head swaps later.</td></tr>
+        <tr><td>Augmentation</td><td>Random crop 32 (padding 4) + horizontal flip; none at evaluation</td><td>The standard CIFAR recipe (checked in section 13).</td></tr>
+        <tr><td>Normalization</td><td>CIFAR-10 mean and std</td><td>The same values every stage will use.</td></tr>
+        <tr><td>Optimizer</td><td>SGD, momentum 0.9, weight decay 5e-4, batch size 128</td><td>The fixed recipe for all stages.</td></tr>
+        <tr><td>Learning rate</td><td>Cosine decay from 0.1</td><td>The stage-1 schedule.</td></tr>
+        <tr><td>Length</td><td>A fixed number of epochs (e.g. 100–200), chosen before starting</td><td>Must equal the stage-1 length for A and C, or the checkpoint can't be reused.</td></tr>
+        <tr><td>Checkpoint</td><td>The final one, after the last epoch</td><td>Never the "best test epoch": that would use the test set to make a decision.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>How to run it</h3>
+      <ul>
+        <li><b>Smoke test first:</b> 1 epoch, to catch crashes, shape errors and MPS problems in minutes.</li>
+        <li><b>Then the full run</b> with the fixed number of epochs.</li>
+        <li><b>At the end:</b> save the checkpoint (backbone + CIFAR-10 head, in one file), and run the linear probe once to test the probe code too.</li>
+        <li><b>If MPS fails, stop</b> and report it instead of switching device.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What to record</h3>
+      <ul>
+        <li>Per epoch: train loss and accuracy, CIFAR-10 test loss and accuracy, epoch time.</li>
+        <li>Final: test accuracy, total time, saved checkpoint.</li>
+        <li>Probe accuracy on the final backbone (should be close to the full model's accuracy).</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="table-title">Reading the result</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>You see</th><th>Meaning</th><th>Next</th></tr></thead>
+      <tbody>
+        <tr><td>Test accuracy ~92–95%</td><td>Pipeline is healthy.</td><td>Keep the checkpoint as A's stage 1 (seed 1) and go to step 5.</td></tr>
+        <tr><td>Test accuracy well below ~90%</td><td>Likely a bug: ImageNet stem, wrong normalization, missing augmentation, or LR schedule not applied.</td><td>Fix and rerun before anything else.</td></tr>
+        <tr><td>Train accuracy ~100%, test much lower</td><td>Overfitting; augmentation probably not applied.</td><td>Check the data pipeline.</td></tr>
+        <tr><td>Probe far below the full model's accuracy</td><td>Probe code problem (e.g. backbone not in eval mode, features not normalized).</td><td>Fix the probe before step 5.</td></tr>
+        <tr><td>Long time per epoch</td><td>Stage 1 is the expensive part.</td><td>Consider reusing stage-1 checkpoints across seeds.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 8. Sequential order -->
+<section id="order">
+  <div class="eyebrow">8 · The order of work</div>
+  <h2>Every step, in order</h2>
+
+  <figure>
+    <svg viewBox="0 0 960 150" role="img" aria-label="Four phases in order: Phase 0 prepare and calibrate, steps 1 to 7, once; Phase 1 one seed, steps 8 to 11; Phase 2 repeat for more seeds, step 12; Phase 3 analysis, steps 13 to 17.">
+      <defs>
+        <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="10" y="20" width="210" height="110" rx="8" class="fb-soft"/>
+        <text x="26" y="44" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" class="faccent">PHASE 0 · STEPS 1–7</text>
+        <text x="26" y="66" font-size="14" font-weight="600">Prepare + calibrate</text>
+        <text x="26" y="88" class="fmuted">split, code, baseline,</text>
+        <text x="26" y="104" class="fmuted">fix stage-2/3 settings</text>
+        <text x="26" y="120" class="fmuted">once</text>
+        <line x1="222" y1="75" x2="244" y2="75" stroke="currentColor" marker-end="url(#arr4)"/>
+
+        <rect x="248" y="20" width="210" height="110" rx="8" class="fa-soft"/>
+        <text x="264" y="44" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" class="faccent">PHASE 1 · STEPS 8–11</text>
+        <text x="264" y="66" font-size="14" font-weight="600">One seed</text>
+        <text x="264" y="88" class="fmuted">stage 1 → stage 2 →</text>
+        <text x="264" y="104" class="fmuted">check → stage 3</text>
+        <text x="264" y="120" class="fmuted">11 training runs</text>
+        <line x1="460" y1="75" x2="482" y2="75" stroke="currentColor" marker-end="url(#arr4)"/>
+
+        <rect x="486" y="20" width="210" height="110" rx="8" class="fb-soft"/>
+        <text x="502" y="44" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" class="faccent">PHASE 2 · STEP 12</text>
+        <text x="502" y="66" font-size="14" font-weight="600">Repeat</text>
+        <text x="502" y="88" class="fmuted">seeds 2 and 3</text>
+        <text x="502" y="104" class="fmuted">(4 and 5 if the A–C gap</text>
+        <text x="502" y="120" class="fmuted">is within the noise)</text>
+        <line x1="698" y1="75" x2="720" y2="75" stroke="currentColor" marker-end="url(#arr4)"/>
+
+        <rect x="724" y="20" width="226" height="110" rx="8" class="fb-soft"/>
+        <text x="740" y="44" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="11" class="faccent">PHASE 3 · STEPS 13–17</text>
+        <text x="740" y="66" font-size="14" font-weight="600">Analysis</text>
+        <text x="740" y="88" class="fmuted">metrics and figures,</text>
+        <text x="740" y="104" class="fmuted">mean ± spread over seeds,</text>
+        <text x="740" y="120" class="fmuted">read the outcome table</text>
+      </g>
+    </svg>
+    <figcaption>The whole project in four phases. Phase 1 is the pipeline in section 3, run once per seed.</figcaption>
+  </figure>
+
+  <div class="phase-label"><h3>Phase 0 · Prepare and calibrate</h3><span>once, before any real run</span></div>
+  <ol class="steps">
+    <li><div class="body"><h3>Decide the validation set <span class="badge done">✓ done</span></h3><p class="why"><b>Why:</b> the data split depends on it, and the split can't change later. Validation is needed because steps 5 and 6 choose settings by looking at results; doing that on the test set would bias the final numbers.</p></div></li>
+    <li><div class="body"><h3>Create the fixed data split and save it <span class="badge done">✓ done</span></h3><p>CIFAR-10 train → 40k pretrain pool (source of A-seen subsets) + 10k held out (never-seen pool + validation).</p><p class="why"><b>Why:</b> every arm and seed draws from exactly the same pools.</p></div></li>
+    <li><div class="body"><h3>Write the code <span class="badge done">✓ done</span></h3><p>Model (backbone + swappable heads), data loading, training loop, evaluation, probe, checkpoints, metric logging.</p><p class="why"><b>Why:</b> one set of parts reused by every stage.</p></div></li>
+    <li><div class="body"><h3>Run the baseline</h3><p>ResNet-18 on the 40k CIFAR-10 pool, trained with the shared recipe. Full description in section 7.</p><p class="measure"><b>Record</b>CIFAR-10 test accuracy, time per epoch.</p><p class="why"><b>Why:</b> tests the code, gives the reference accuracy and the cost, and becomes A's stage 1 for seed 1.</p></div></li>
+    <li><div class="body"><h3>Calibrate stage 2</h3><p>Train the baseline on SVHN, checking the old-head CIFAR-10 accuracy (on validation) as it goes.</p><p class="why"><b>Why:</b> find how many SVHN steps make A look forgotten (≈10%), then use that for every arm.</p></div></li>
+    <li><div class="body"><h3>Calibrate stage 3</h3><p>On validation, choose the warmup length, the constant learning rate and the step budget, and confirm the 50/70/80% thresholds. Also fix the probe settings.</p><p class="why"><b>Why:</b> settings are fixed before the real runs, without touching the test set.</p></div></li>
+    <li><div class="body"><h3>Estimate total cost</h3><p>Time per epoch × all runs. Decide whether stage 1 is retrained per seed.</p><p class="why"><b>Why:</b> know if the plan fits your time before starting.</p></div></li>
+  </ol>
+
+  <div class="phase-label"><h3>Phase 1 · One seed</h3><span>11 training runs · the pipeline in section 3</span></div>
+  <ol class="steps" style="counter-reset: step 7">
+    <li><div class="body"><h3>Stage 1: pretrain A and C</h3><p>Same recipe and steps. B gets random weights. Save each arm's stage-1 checkpoint, including A's CIFAR-10 head.</p><p class="measure"><b>Record</b>A: CIFAR-10 test acc · C: CIFAR-100 test acc · train loss · CIFAR-10 probe at the end (A and C after stage 1, B at init).</p><p class="why"><b>Why:</b> A and C differ only in what they learned. Test results are recorded, never used to pick a checkpoint.</p></div></li>
+    <li><div class="body"><h3>Stage 2: train A, B, C on SVHN</h3><p>New SVHN head, fresh optimizer, the step count from calibration. Save each arm's stage-2 checkpoint.</p><p class="measure"><b>Record</b>SVHN test acc (all) · A's old-head CIFAR-10 acc every N steps · CIFAR-10 probe every M steps (all).</p><p class="why"><b>Why:</b> overwrite all three the same way, and watch forgetting happen.</p></div></li>
+    <li><div class="body"><h3>Run the checks</h3><p>On the frozen stage-2 checkpoints.</p><p class="measure"><b>Record</b>probe acc (all) · old-head acc (A) · SVHN acc (all).</p><p class="why"><b>Why:</b> measure what survived before relearning starts.</p></div></li>
+    <li><div class="body"><h3>Stage 3: relearn, 6 runs</h3><p>Each arm twice from its stage-2 checkpoint: A-seen 5k and never-seen 5k. Fresh head, learning-rate warmup then a constant rate.</p><p class="measure"><b>Record</b>CIFAR-10 test acc and loss every ~25 steps early, then less often · train loss.</p><p class="why"><b>Why:</b> the main measurement, plus the A-seen vs never-seen comparison. The warmup stops the random new head from damaging retained features in the first steps.</p></div></li>
+  </ol>
+
+  <div class="phase-label"><h3>Phase 2 · Repeat</h3><span>seeds 2 and 3, then 4 and 5 if needed</span></div>
+  <ol class="steps" style="counter-reset: step 11">
+    <li><div class="body"><h3>Rerun Phase 1 with a new seed</h3><p>New starting weights, data order and 5k subsets (from the same pools).</p><p class="why"><b>Why:</b> results vary by chance; repeats show whether differences are real. Add seeds if the A–C gap is within the noise.</p></div></li>
+  </ol>
+
+  <div class="phase-label"><h3>Phase 3 · Analysis</h3><span>mean ± spread across seeds · metrics in section 9, figures in section 10</span></div>
+  <ol class="steps" style="counter-reset: step 12">
+    <li><div class="body"><h3>Compare retention before relearning</h3><p>Probe after stage 1 and after stage 2 per arm, A's old-head accuracy, SVHN accuracy (figure 4).</p><p class="why"><b>Why:</b> how much survived, and whether the arms were overwritten equally.</p></div></li>
+    <li><div class="body"><h3>Plot the timeline and relearning curves</h3><p>Full timeline per arm (figure 1), steps to 50/70/80% (figure 3), area under the curve, final accuracy.</p><p class="why"><b>Why:</b> who recovers fastest.</p></div></li>
+    <li><div class="body"><h3>Plot the aligned curves</h3><p>Start each curve where it first reaches 50% (figure 2).</p><p class="why"><b>Why:</b> separates "started ahead" from "learns faster."</p></div></li>
+    <li><div class="body"><h3>A-seen vs never-seen</h3><p><span class="mono">memory effect = gap(A) − gap(B)</span>, and the same with C (figure 5).</p><p class="why"><b>Why:</b> positive means A remembers specific images, beyond the A-seen subset simply being easier (section 4).</p></div></li>
+    <li><div class="body"><h3>Read the result off the outcomes table</h3><p class="why"><b>Why:</b> turns the ranking of A, B, C into a conclusion (section 11).</p></div></li>
+  </ol>
+</section>
+
+<!-- 9. Metrics -->
+<section id="metrics">
+  <div class="eyebrow">9 · What to measure</div>
+  <h2>Every metric, and the question it answers</h2>
+  <p>Each metric is here to answer one question. The tables say which question, and how to read the number.</p>
+
+  <div class="card note" id="probe-checkpoints">
+    <h3>Key metric: the CIFAR-10 probe at checkpoints</h3>
+    <p><b>The problem: B and C can't be scored on CIFAR-10 during stages 1–2.</b> To get a CIFAR-10 accuracy, a model needs a <b>CIFAR-10 head</b>: the last layer that answers "which of the 10 CIFAR-10 classes is this image?" Without one, there is nothing to score. This is the head each arm has:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Arm</th><th>Stage 1</th><th>Stage 2</th><th>CIFAR-10 head available?</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill pill-a">A</span></td><td>CIFAR-10 head</td><td>SVHN head</td><td><b>Yes.</b> Its stage-1 CIFAR-10 head is saved and can be reattached.</td></tr>
+          <tr><td><span class="pill pill-b">B</span></td><td>none (skipped)</td><td>SVHN head</td><td><b>No.</b> It never trained on CIFAR-10.</td></tr>
+          <tr><td><span class="pill pill-c">C</span></td><td>CIFAR-100 head</td><td>SVHN head</td><td><b>No.</b> Its head answers 100 CIFAR-100 classes, not CIFAR-10's 10.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>So during stages 1–2, only A can be scored on CIFAR-10, by reattaching its old head. B and C can't: their heads answer different questions (digits 0–9 for SVHN, or 100 classes for CIFAR-100). And even for A, the old head is a weak measure: after SVHN training the backbone's features have shifted, so the old head may score ~10% even if the backbone still knows a lot.</p>
+    <p class="why"><b>Why every arm needs a score:</b> A's score alone has no meaning, because any backbone trained on SVHN picks up general image features that help a little with CIFAR-10. B and C show how much. Example: A 60%, C 48%, B 38% → 22 points come from pretraining on CIFAR-10 (A − B), and 12 of them are specific to CIFAR-10 (A − C).</p>
+    <p><b>The fix: give every arm a temporary CIFAR-10 head.</b> <b>Required</b> at two points: the end of stage 1 (before forgetting) and the end of stage 2 (the starting point for relearning). <b>Optional</b> every ~500 steps in between, to see how fast forgetting happens. Each time: freeze the model, train a small CIFAR-10 head on top (the linear probe), test it, then throw the head away. Same procedure for all three arms, and cheap. A gets two scores: <b>probe</b> (what it still knows) and <b>old head</b> (what it looks like it knows).</p>
+    <p><b>What it answers:</b></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Question</th><th>How to read it</th></tr></thead>
+        <tbody>
+          <tr><td><b>1. Does A really forget, or only look like it?</b></td><td>In stage 2, A's old head drops to ~10% while its probe stays high → A only <em>looks</em> forgotten; the knowledge is still inside. Both drop → A really forgot. This is the core question of the experiment.</td></tr>
+          <tr><td><b>2. How fast and how much does each arm lose?</b></td><td>The shape of the probe line in stage 2: a fast early drop or a slow one, and whether it levels off. Tells you how much survives and when to stop stage 2.</td></tr>
+          <tr><td><b>3. What does each arm start stage 3 with?</b></td><td>The last probe value before stage 3, the same measure for all arms (e.g. A 60%, C 48%, B 38%). If A relearns fastest, this shows whether it simply started with more.</td></tr>
+          <tr><td><b>4. Does relearning use what was kept?</b></td><td>High probe and fast relearning → the kept knowledge helps. High probe but slow relearning → it was there but got damaged at the start of stage 3 (check the warmup).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="why"><b>In one sentence:</b> the stage-3 curves tell you <em>who</em> relearns fastest; the probe at checkpoints tells you <em>why</em>, by showing what each model actually kept through forgetting.</p>
+  </div>
+
+  <p class="table-title">Stage 1 · Learn</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Arms</th><th>Question it answers</th><th>How to read it</th></tr></thead>
+      <tbody>
+        <tr><td>Train loss and accuracy</td><td>A, C</td><td>Is training working?</td><td>Loss should fall steadily. Flat or jumping around means a bug (learning rate, data, code).</td></tr>
+        <tr><td>CIFAR-10 test accuracy and loss</td><td>A</td><td>What does "fully learned" look like?</td><td>Expect ~93%. The reference for how much A forgets and how far each arm recovers.</td></tr>
+        <tr><td>CIFAR-100 test accuracy</td><td>C</td><td>Did C really learn its own task?</td><td>Should be well above chance (1% for 100 classes), likely 50–65%. Near chance means C isn't a fair pretrained control.</td></tr>
+        <tr><td>CIFAR-10 probe at the end of stage 1</td><td>all (B at random init)</td><td>How much does each arm know about CIFAR-10 <b>before</b> forgetting?</td><td>A high, C in the middle (what CIFAR-100 transfers), B lowest (random features). The "before" picture that stage-2 losses are measured from.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="table-title">Stage 2 · Overwrite</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Arms</th><th>Question it answers</th><th>How to read it</th></tr></thead>
+      <tbody>
+        <tr><td>SVHN train and test accuracy</td><td>all</td><td>Were all arms overwritten equally?</td><td>Similar SVHN accuracy → same amount of overwriting. A big difference means the arms aren't comparable in stage 3.</td></tr>
+        <tr><td>Old-head CIFAR-10 accuracy every N steps</td><td>A</td><td>How fast does A <em>appear</em> to forget, and did stage 2 go far enough?</td><td>Should fall to ~10% (chance). Still high at the end → stage 2 is too short. Also used to set the stage-2 length during calibration.</td></tr>
+        <tr><td><i>Optional:</i> CIFAR-10 probe every M steps</td><td>all</td><td>How much does each backbone <em>actually</em> keep, and when is it lost?</td><td>See the key-metric box above (questions 1 and 2). Compare with A's old-head line.</td></tr>
+        <tr><td><b>At the end:</b> probe, old head, SVHN accuracy</td><td>all</td><td>What does each arm start relearning with?</td><td>The starting point for stage 3 (question 3 above). The probe ranking is a prediction for the stage-3 ranking.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="table-title">Stage 3 · Relearn (for both subsets)</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Question it answers</th><th>How to read it</th></tr></thead>
+      <tbody>
+        <tr><td>CIFAR-10 test accuracy <b>and</b> loss, every ~25 steps early, then less often</td><td>How does each arm relearn over time?</td><td>The main raw result: one curve per arm and subset. Loss is recorded too because it changes more smoothly than accuracy early on.</td></tr>
+        <tr><td>Train loss</td><td>Is relearning healthy, or overfitting the 5k images?</td><td>Train loss falling while test loss rises → overfitting.</td></tr>
+        <tr><td>Steps to reach 50 / 70 / 80%</td><td>How fast does each arm get to a useful level?</td><td>Fewer steps = faster relearning. "Not reached by step X" counts as slower than every arm that did reach it.</td></tr>
+        <tr><td>Area under the accuracy curve</td><td>Which arm was better over the <em>whole</em> relearning, not just at one point?</td><td>Larger = higher accuracy on average across all steps. One number per run, less sensitive to a single noisy evaluation.</td></tr>
+        <tr><td>Final accuracy and loss</td><td>Where does each arm end up within the step budget?</td><td>Shows whether pretraining only speeds relearning up, or also raises how high an arm gets.</td></tr>
+        <tr><td><i>Optional:</i> steps until accuracy reaches that arm's own probe accuracy</td><td>Does fine-tuning quickly use what the backbone kept?</td><td>Fast → kept knowledge is used right away. Slow → early feature damage (question 4 above; check the warmup).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="table-title">Derived (analysis)</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Question it answers</th><th>How to read it</th></tr></thead>
+      <tbody>
+        <tr><td><b>Aligned curves:</b> accuracy after first reaching 50%, and the gain in the first K steps after that</td><td>Did A only start ahead, or does it also learn faster?</td><td>Curves overlap after alignment → A only started ahead. A still rises faster → A truly learns faster.</td></tr>
+        <tr><td>Memory effect = gap(A) − gap(B), and the same with C</td><td>Does A remember the specific images it trained on?</td><td>Clearly above 0 → yes. About 0 → A kept general CIFAR-10 knowledge, not specific images (section 4).</td></tr>
+        <tr><td>Probe before stage 3 vs stage-3 curves</td><td>Was the kept knowledge used, or lost early in stage 3?</td><td>A's probe ≫ B's and A's curve ≫ B's → used. A's probe ≫ B's but curves ≈ equal → lost early in stage 3. Both ≈ equal → nothing was kept.</td></tr>
+        <tr><td>Recovery = final accuracy ÷ A's stage-1 accuracy</td><td>How close does each arm get to "fully learned"?</td><td>1.0 = fully back to A's original level.</td></tr>
+        <tr><td>Everything above as mean ± spread across seeds</td><td>Are the differences real, or luck?</td><td>A–C gap bigger than the spread → real. Within the spread → run more seeds (up to 5).</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why"><b>Rule for test results:</b> record them at every stage, but never use them to decide anything (no picking the best epoch, no tuning). Decisions use validation.</p>
+</section>
+
+<!-- 9. Figures -->
+<section id="figures">
+  <div class="eyebrow">10 · The figures</div>
+  <h2>Five figures</h2>
+
+  <ol class="figlist">
+    <li><span class="fig-no">FIGURE 1</span><div class="body"><h3>Full timeline per arm</h3><p>CIFAR-10 probe accuracy for every arm, plus A's old-head accuracy, through stages 1–2; stage 3 zoomed in on the right. Solid = A-seen subset, dashed = never-seen.</p><p class="why">Shows forgetting and relearning in one picture: whether A only looks forgotten in stage 2, and who relearns fastest in stage 3.</p></div></li>
+    <li><span class="fig-no">FIGURE 2</span><div class="body"><h3>Aligned relearning</h3><p>Each arm's stage-3 curve, starting where it first reaches 50%. Never-seen subset, mean ± spread over seeds.</p><p class="why">Removes the head start, so it shows whether A also learns faster or only started ahead.</p></div></li>
+    <li><span class="fig-no">FIGURE 3</span><div class="body"><h3>Steps to threshold</h3><p>Steps to 50 / 70 / 80% per arm, with "not reached" marked.</p></div></li>
+    <li><span class="fig-no">FIGURE 4</span><div class="body"><h3>Retention bars</h3><p>Probe accuracy after stage 1 and after stage 2 per arm, plus A's old-head accuracy.</p></div></li>
+    <li><span class="fig-no">FIGURE 5</span><div class="body"><h3>Memory effect</h3><p>gap(A) − gap(B) and gap(A) − gap(C), with error bars.</p></div></li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 960 330" role="img" aria-label="Schematic of figure 1 with made-up curves. During stage 1, A's probe and old-head accuracy rise high and C's probe rises less. During stage 2, A's old-head accuracy falls to near chance while A's probe stays well above B and C. In stage 3, all arms relearn, A fastest.">
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="currentColor">
+        <text x="380" y="16" text-anchor="middle" font-size="13" font-weight="600">Figure 1 (schematic): CIFAR-10 test accuracy through the whole run</text>
+        <!-- stage bands -->
+        <rect x="60" y="34" width="320" height="236" class="fb-soft"/>
+        <text x="220" y="50" text-anchor="middle" font-weight="600">STAGE 1 · learn</text>
+        <text x="540" y="50" text-anchor="middle" font-weight="600">STAGE 2 · SVHN</text>
+        <text x="840" y="50" text-anchor="middle" font-weight="600">STAGE 3 · relearn</text>
+        <!-- axes -->
+        <line x1="60" y1="270" x2="700" y2="270" stroke="currentColor" opacity="0.5"/>
+        <line x1="60" y1="40" x2="60" y2="270" stroke="currentColor" opacity="0.5"/>
+        <line x1="740" y1="270" x2="940" y2="270" stroke="currentColor" opacity="0.5"/>
+        <line x1="740" y1="40" x2="740" y2="270" stroke="currentColor" opacity="0.5"/>
+        <text x="54" y="274" text-anchor="end">0%</text>
+        <text x="54" y="159" text-anchor="end">50%</text>
+        <text x="54" y="44" text-anchor="end">100%</text>
+        <text x="734" y="274" text-anchor="end">0%</text>
+        <text x="734" y="159" text-anchor="end">50%</text>
+        <text x="734" y="44" text-anchor="end">100%</text>
+        <line x1="60" y1="247" x2="700" y2="247" class="sline" stroke-dasharray="3 4"/>
+        <text x="696" y="262" text-anchor="end" class="fmuted">chance 10%</text>
+        <text x="380" y="292" text-anchor="middle">training step →</text>
+        <text x="840" y="292" text-anchor="middle">stage-3 step →</text>
+
+        <!-- A old head (dashed) -->
+        <polyline points="60,247 100,140 160,90 240,66 380,56 395,150 420,215 470,238 550,242 700,243" fill="none" class="sa" stroke-width="2" stroke-dasharray="6 4"/>
+        <!-- A probe -->
+        <polyline points="60,189 100,120 160,90 240,75 380,68 400,100 450,118 550,128 700,132" fill="none" class="sa" stroke-width="2.4"/>
+        <!-- C probe -->
+        <polyline points="60,189 120,160 200,145 300,139 380,137 400,150 480,157 700,160" fill="none" class="sc" stroke-width="2.4"/>
+        <!-- B probe -->
+        <polyline points="380,189 450,182 550,179 700,178" fill="none" class="sb" stroke-width="2.4"/>
+
+        <text x="600" y="121" class="fa" font-weight="600">A probe</text>
+        <text x="600" y="152" class="fc" font-weight="600">C probe</text>
+        <text x="600" y="194" class="fb" font-weight="600">B probe</text>
+        <text x="470" y="230" class="fa" font-weight="600">A old head</text>
+
+        <!-- stage 3 -->
+        <polyline points="740,247 760,150 800,110 860,95 940,88" fill="none" class="sa" stroke-width="2.4"/>
+        <polyline points="740,247 770,175 820,135 880,118 940,108" fill="none" class="sc" stroke-width="2.4"/>
+        <polyline points="740,247 780,200 840,160 900,138 940,128" fill="none" class="sb" stroke-width="2.4"/>
+        <text x="944" y="91" class="fa" font-weight="600">A</text>
+        <text x="944" y="111" class="fc" font-weight="600">C</text>
+        <text x="944" y="131" class="fb" font-weight="600">B</text>
+
+        <text x="480" y="318" text-anchor="middle" class="fmuted">Schematic only: made-up curves to show the layout, not results. B has no stage 1, so its line starts at stage 2.</text>
+      </g>
+    </svg>
+    <figcaption>The key reading is in stage 2: if A's old head (dashed) falls to chance while A's probe (solid) stays well above B and C, A only <em>looks</em> forgotten. Stage 3 restarts at chance for every arm because each gets a fresh head.</figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 960 300" role="img" aria-label="Schematic of figure 2 with made-up curves. Left: raw stage-3 accuracy curves where A rises first, then C, then B. Right: the same curves shifted so each starts where it first reaches 50 percent, to compare how fast they rise from there.">
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="currentColor">
+        <text x="240" y="16" text-anchor="middle" font-size="13" font-weight="600">Raw: accuracy vs stage-3 steps</text>
+        <line x1="50" y1="240" x2="430" y2="240" stroke="currentColor" opacity="0.5"/>
+        <line x1="50" y1="40" x2="50" y2="240" stroke="currentColor" opacity="0.5"/>
+        <text x="44" y="244" text-anchor="end">0%</text>
+        <text x="44" y="144" text-anchor="end">50%</text>
+        <text x="44" y="44" text-anchor="end">100%</text>
+        <line x1="50" y1="140" x2="430" y2="140" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+        <text x="240" y="262" text-anchor="middle">steps →</text>
+        <polyline points="50,220 80,160 120,118 180,92 260,78 420,70" fill="none" class="sa" stroke-width="2.2"/>
+        <polyline points="50,220 90,192 140,152 200,120 280,100 420,88" fill="none" class="sc" stroke-width="2.2"/>
+        <polyline points="50,220 110,208 170,180 240,150 320,124 420,106" fill="none" class="sb" stroke-width="2.2"/>
+        <text x="424" y="66" class="fa" font-weight="600">A</text>
+        <text x="424" y="84" class="fc" font-weight="600">C</text>
+        <text x="424" y="110" class="fb" font-weight="600">B</text>
+
+        <text x="720" y="16" text-anchor="middle" font-size="13" font-weight="600">Aligned (figure 2): start where each reaches 50%</text>
+        <line x1="530" y1="240" x2="910" y2="240" stroke="currentColor" opacity="0.5"/>
+        <line x1="530" y1="40" x2="530" y2="240" stroke="currentColor" opacity="0.5"/>
+        <text x="524" y="244" text-anchor="end">0%</text>
+        <text x="524" y="144" text-anchor="end">50%</text>
+        <text x="524" y="44" text-anchor="end">100%</text>
+        <line x1="530" y1="140" x2="910" y2="140" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+        <text x="720" y="262" text-anchor="middle">steps after reaching 50% →</text>
+        <polyline points="530,140 580,112 640,94 720,82 900,72" fill="none" class="sa" stroke-width="2.2"/>
+        <polyline points="530,140 580,120 640,104 720,92 900,82" fill="none" class="sc" stroke-width="2.2"/>
+        <polyline points="530,140 580,126 640,114 720,104 900,94" fill="none" class="sb" stroke-width="2.2"/>
+        <text x="904" y="70" class="fa" font-weight="600">A</text>
+        <text x="904" y="86" class="fc" font-weight="600">C</text>
+        <text x="904" y="98" class="fb" font-weight="600">B</text>
+        <text x="480" y="290" text-anchor="middle" class="fmuted">Schematic only: made-up curves, not results.</text>
+      </g>
+    </svg>
+    <figcaption>Left: the raw curves show which arm gets there first. Right: if the aligned curves lie on top of each other, A only <em>started ahead</em>; if A still rises faster, A truly <em>learns faster</em>. This needs a constant stage-3 learning rate after the warmup, so no arm is at a lower learning rate when it reaches 50%.</figcaption>
+  </figure>
+
+  <div class="card note">
+    <h3>Pitfalls to avoid in the figures</h3>
+    <ul>
+      <li><b>A single "recovered" threshold can end up empty</b> if no arm reaches it within the stage-3 budget. That is why steps to threshold uses several levels (50 / 70 / 80%).</li>
+      <li><b>Aligned curves can end at different lengths.</b> Every arm gets the same number of stage-3 steps, but reaches 50% at a different time, so an arm that gets there later has less curve left. Compare slopes only over the range all arms share, or give stage 3 enough steps that every arm has the same length of curve after alignment.</li>
+      <li><b>Overlapping A-seen and never-seen lines for A</b> would mean a small or zero memory effect for specific images. Judge it with the difference of differences (section 4), not by eye.</li>
+      <li><b>One seed is not a result.</b> Final figures show mean ± spread over seeds.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 10. Outcomes -->
+<section id="outcomes">
+  <div class="eyebrow">11 · Reading the result</div>
+  <h2>What each ranking would mean</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Result</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-a">A</span> &gt; <span class="pill pill-c">C</span> &gt; <span class="pill pill-b">B</span></td><td>A remembers CIFAR-10, and pretraining helps in general.</td></tr>
+        <tr><td><span class="pill pill-a">A</span> &gt; <span class="pill pill-c">C</span> = <span class="pill pill-b">B</span></td><td>Only remembering CIFAR-10 helps.</td></tr>
+        <tr><td><span class="pill pill-a">A</span> = <span class="pill pill-c">C</span> &gt; <span class="pill pill-b">B</span></td><td>Pretraining helps in general; nothing specific was remembered.</td></tr>
+        <tr><td><span class="pill pill-a">A</span> = <span class="pill pill-c">C</span> = <span class="pill pill-b">B</span></td><td>Nothing helps; forgetting was complete.</td></tr>
+        <tr><td><span class="pill pill-b">B</span> wins</td><td>Pretraining makes relearning harder (lost plasticity).</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">"=" means the difference is within the spread across seeds. Check the probe too: if A's probe is high but its stage-3 curve is no better than B's, retention existed but was lost early in stage 3 (check the warmup).</p>
+</section>
+
+<!-- 11. Run count -->
+<section id="size">
+  <div class="eyebrow">12 · Size of the job</div>
+  <h2>Runs per seed</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Step</th><th>Training runs</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Stage 1 (A, C)</td><td class="num">2</td><td>high: 40k images, many epochs</td></tr>
+        <tr><td>Stage 2 (A, B, C)</td><td class="num">3</td><td>medium, plus probes at checkpoints</td></tr>
+        <tr><td>Checks</td><td class="num">3 probes + 1 eval</td><td>very low</td></tr>
+        <tr><td>Stage 3 (3 arms × A-seen/never-seen)</td><td class="num">6</td><td>low: 5k images</td></tr>
+        <tr><td><b>Total per seed</b></td><td class="num"><b>11</b></td><td>× 3 seeds = 33 runs</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<div class="part">What we built</div>
+
+<!-- 13. Data -->
+<section id="data">
+  <div class="eyebrow">13 · The data: what we found</div>
+  <h2>Important things to know about the datasets</h2>
+  <p>From the exploration notebook (<span class="mono">notebooks/01_datasets.ipynb</span>). All three datasets loaded with the expected sizes, shapes and labels.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dataset</th><th>Used by</th><th>Train / test</th><th>Classes</th><th>Good to know</th></tr></thead>
+      <tbody>
+        <tr><td style="white-space:nowrap"><b>CIFAR-10</b></td><td><span class="pill pill-a">A</span> stage 1 · all arms stage 3</td><td class="num" style="white-space:nowrap">50,000 / 10,000</td><td>10 objects, exactly 5,000 each</td><td>The data we care about. Split into a 40k pretrain pool and a 10k held-out pool (section 4).</td></tr>
+        <tr><td style="white-space:nowrap"><b>CIFAR-100</b></td><td><span class="pill pill-c">C</span> stage 1</td><td class="num" style="white-space:nowrap">50,000 / 10,000</td><td>100 objects, exactly 500 each</td><td>Same kind of photos, but no class is shared with CIFAR-10.</td></tr>
+        <tr><td style="white-space:nowrap"><b>SVHN</b></td><td>all arms, stage 2</td><td class="num" style="white-space:nowrap">73,257 / 26,032</td><td>digits 0–9, <b>unbalanced</b></td><td>House-number crops. Stored channels-first (3×32×32), labels in <span class="mono">.labels</span>, and the files come from the Internet Archive (README).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two">
+    <div class="card note">
+      <h3>1 · SVHN "chance" is 19.6%, not 10%</h3>
+      <p>Digit 1 alone is 19% of SVHN. A model that always answers "1" scores <b>19.6%</b> on the SVHN test set. Read stage-2 SVHN accuracy against that floor.</p>
+    </div>
+    <div class="card note">
+      <h3>2 · C's data is close to A's, but not the same</h3>
+      <p>CIFAR-100 has look-alikes for most CIFAR-10 classes (pickup truck, bus, tiger, wolf, camel, lizard), and nothing for <b>bird</b> or <b>ship</b>. So C is a fair "pretrained on similar photos, never on CIFAR-10" control.</p>
+    </div>
+    <div class="card note">
+      <h3>3 · One normalization works for every stage</h3>
+      <p>CIFAR-10 mean <span class="mono">(0.4914, 0.4822, 0.4465)</span>, std <span class="mono">(0.2470, 0.2435, 0.2616)</span>, matching the published values. CIFAR-100 is almost identical. SVHN is a bit darker and lower-contrast (shifted ~0.2 std), which is small enough to use the same values.</p>
+    </div>
+    <div class="card note">
+      <h3>4 · SVHN images contain neighboring digits</h3>
+      <p>The label is the center digit, but parts of other digits often show at the edges, and many crops are blurry. That is why SVHN gets crop-only augmentation: a <b>flipped</b> 2 or 3 is not a valid digit.</p>
+    </div>
+  </div>
+
+  <p class="table-title">Is one normalization unfair to SVHN and CIFAR-100?</p>
+  <p>Every image is normalized with CIFAR-10's mean and std, in every stage. This is how each dataset looks after that. Perfectly matched data would be mean 0 and std 1.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dataset</th><th>Mean after (R, G, B)</th><th>Std after</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td>CIFAR-10</td><td class="num">0, 0, 0</td><td class="num">1</td><td>Exact, by definition.</td></tr>
+        <tr><td>CIFAR-100</td><td class="num">0.06, 0.02, −0.02</td><td class="num">≈1.06</td><td>Almost perfectly normalized anyway. C loses nothing.</td></tr>
+        <tr><td>SVHN</td><td class="num">−0.22, −0.16, 0.10</td><td class="num">≈0.8</td><td>Off by about 0.2 std: small. ResNet-18's BatchNorm layers re-center their inputs during training, so the network adapts easily.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why"><b>Why one fixed normalization:</b> it is part of the model's input, so keeping it fixed means only the <em>data</em> changes between stages, not the input scaling. Every arm gets exactly the same treatment in each stage, so the A–B–C comparison stays fair.</p>
+
+  <figure class="small">
+    <svg viewBox="0 0 730 240" role="img" aria-label="Bar chart: share of SVHN training images per digit. Digit 1 is 18.9%, digit 2 14.4%, digit 3 11.6%, digit 4 10.2%, digit 5 9.4%, digits 0 and 6 to 9 between 6.4% and 7.8%. A balanced dataset would have 10% each.">
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <line x1="58" x2="712" y1="200" y2="200" class="sline"/><text x="50" y="204" text-anchor="end" class="fmuted">0%</text><line x1="58" x2="712" y1="160" y2="160" class="sline"/><text x="50" y="164" text-anchor="end" class="fmuted">5%</text><line x1="58" x2="712" y1="80" y2="80" class="sline"/><text x="50" y="84" text-anchor="end" class="fmuted">15%</text><line x1="58" x2="712" y1="40" y2="40" class="sline"/><text x="50" y="44" text-anchor="end" class="fmuted">20%</text>
+        <rect x="70" y="145.6" width="40" height="54.4" rx="3" class="faccent"><title>digit 0: 6.8% of SVHN train</title></rect><text x="90" y="218" text-anchor="middle">0</text><rect x="134" y="48.8" width="40" height="151.2" rx="3" class="faccent"><title>digit 1: 18.9% of SVHN train</title></rect><text x="154" y="218" text-anchor="middle">1</text><text x="154" y="42.8" text-anchor="middle" font-weight="600">18.9%</text><rect x="198" y="84.8" width="40" height="115.2" rx="3" class="faccent"><title>digit 2: 14.4% of SVHN train</title></rect><text x="218" y="218" text-anchor="middle">2</text><rect x="262" y="107.2" width="40" height="92.8" rx="3" class="faccent"><title>digit 3: 11.6% of SVHN train</title></rect><text x="282" y="218" text-anchor="middle">3</text><rect x="326" y="118.4" width="40" height="81.6" rx="3" class="faccent"><title>digit 4: 10.2% of SVHN train</title></rect><text x="346" y="218" text-anchor="middle">4</text><rect x="390" y="124.8" width="40" height="75.2" rx="3" class="faccent"><title>digit 5: 9.4% of SVHN train</title></rect><text x="410" y="218" text-anchor="middle">5</text><rect x="454" y="137.6" width="40" height="62.4" rx="3" class="faccent"><title>digit 6: 7.8% of SVHN train</title></rect><text x="474" y="218" text-anchor="middle">6</text><rect x="518" y="139.2" width="40" height="60.8" rx="3" class="faccent"><title>digit 7: 7.6% of SVHN train</title></rect><text x="538" y="218" text-anchor="middle">7</text><rect x="582" y="144.8" width="40" height="55.2" rx="3" class="faccent"><title>digit 8: 6.9% of SVHN train</title></rect><text x="602" y="218" text-anchor="middle">8</text><rect x="646" y="148.8" width="40" height="51.2" rx="3" class="faccent"><title>digit 9: 6.4% of SVHN train</title></rect><text x="666" y="218" text-anchor="middle">9</text><text x="666" y="142.8" text-anchor="middle" font-weight="600">6.4%</text>
+        <line x1="58" x2="712" y1="120" y2="120" stroke="currentColor" stroke-dasharray="4 4" opacity=".6"/>
+        <text x="50" y="124" text-anchor="end" class="fmuted">10%</text>
+        <text x="712" y="114" text-anchor="end" class="fmuted">balanced = 10% each</text>
+        <text x="385" y="236" text-anchor="middle" class="fmuted">digit</text>
+      </g>
+    </svg>
+    <figcaption>Share of SVHN training images per digit. The test set has almost the same distribution. CIFAR-10 and CIFAR-100 are perfectly balanced.</figcaption>
+  </figure>
+
+  <p class="table-title">Decisions taken from these findings</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Decision</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Normalize every stage and arm with the CIFAR-10 mean/std above</td><td>Inputs mean the same thing in every stage; the other datasets are close enough.</td></tr>
+        <tr><td>Report stage-2 SVHN accuracy next to the 19.6% floor</td><td>Unbalanced classes make 10% the wrong baseline.</td></tr>
+        <tr><td>CIFAR: random crop (padding 4) + flip · SVHN: crop only</td><td>Checked visually: crops keep objects recognizable, flips break digits.</td></tr>
+        <tr><td>Split CIFAR-10 per class (equal counts in every subset)</td><td>The data is perfectly balanced, so no subset should end up light on any class.</td></tr>
+        <tr><td>Start with <span class="mono">num_workers=4</span>, persistent workers</td><td>One CIFAR-10 epoch loads in ~0.6 s; data loading won't slow training.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 14. Splits -->
+<section id="splits">
+  <div class="eyebrow">14 · The saved splits</div>
+  <h2>Which images go where, fixed once</h2>
+  <p><span class="mono">src/make_splits.py</span> picked these once and saved only the <b>image numbers</b> (indices) to <span class="mono">data/splits.npz</span>. Every run of every arm and seed reads the same file, so the groups never change.</p>
+  <pre class="tree">CIFAR-10 train  50,000
+├── <span class="k">c10_pretrain</span>     40,000   4,000 per class   <span class="m">A learns these in stage 1</span>
+│   └── <span class="k">a_seen_seed1…5</span>  5,000   500 per class     <span class="m">stage 3 "A-seen", a different 5k for each seed</span>
+└── held out     10,000                     <span class="m">no arm trains on these in stages 1–2</span>
+    ├── <span class="k">c10_val</span>         5,000   500 per class     <span class="m">choosing settings (calibration)</span>
+    └── <span class="k">c10_never_seen</span>  5,000   500 per class     <span class="m">stage 3 "never-seen" + the linear probe</span>
+
+CIFAR-100 train  50,000
+└── <span class="k">c100_pretrain</span>    40,000   400 per class     <span class="m">C learns these in stage 1</span>
+
+SVHN train and all test sets are used whole: no split needed.</pre>
+  <div class="two">
+    <div class="card">
+      <h3>How they were made</h3>
+      <ul>
+        <li><b>Per class:</b> one helper, <span class="mono">take_per_class</span>, picks N random images of every class and returns the rest. Every split is built from it.</li>
+        <li><b>Fixed seed (0)</b> for the pools, so they are the same forever.</li>
+        <li><b>Its own seed per A-seen group</b> (1–5), so adding a seed never changes the others.</li>
+        <li><b>C gets 40k too</b>, the same amount of data as A; only the content differs.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Checked automatically</h3>
+      <ul>
+        <li>Right size, no image twice, equal count for every class.</li>
+        <li>Pretrain, validation and never-seen don't overlap and cover all 50k.</li>
+        <li>Every A-seen group lies inside the pretrain pool; no two seeds share a group.</li>
+        <li>Built twice → identical. Rerunning gives the exact same file.</li>
+        <li>The script refuses to overwrite an existing <span class="mono">splits.npz</span>.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="why"><b>Good to know:</b> <span class="mono">data/</span> is not in git, so the file lives only on this Mac. If it's lost, rerunning <span class="mono">python src/make_splits.py</span> recreates exactly the same splits, as long as the seed and per-class numbers are never changed.</p>
+</section>
+
+<!-- 15. Data loading -->
+<section id="loading">
+  <div class="eyebrow">15 · Data loading</div>
+  <h2>One function per stage, all in <span class="mono">src/data.py</span></h2>
+  <p>Every stage gets its images from this file, so all stages load data the same way. Each function returns ready-to-use loaders that give batches of <span class="mono">(128, 3, 32, 32)</span> images and <span class="mono">(128,)</span> labels.</p>
+  <figure class="small">
+    <svg viewBox="0 0 860 120" role="img" aria-label="How an image reaches the model: the full dataset, then a Subset that keeps only one split's images, then the transform (crop and flip only when training, then to-tensor and normalize), then the DataLoader that shuffles and makes batches of 128.">
+      <defs><marker id="arr8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="10" y="30" width="160" height="60" rx="6" fill="none" stroke="currentColor"/><text x="90" y="56" text-anchor="middle" font-weight="600">Dataset</text><text x="90" y="74" text-anchor="middle" font-size="11" class="fmuted">all 50k images</text>
+        <line x1="170" y1="60" x2="206" y2="60" stroke="currentColor" marker-end="url(#arr8)"/>
+        <rect x="210" y="30" width="190" height="60" rx="6" class="fa-soft"/><text x="305" y="56" text-anchor="middle" font-weight="600">Subset</text><text x="305" y="74" text-anchor="middle" font-size="11" class="fmuted">only one split's indices</text>
+        <line x1="400" y1="60" x2="436" y2="60" stroke="currentColor" marker-end="url(#arr8)"/>
+        <rect x="440" y="30" width="200" height="60" rx="6" class="fa-soft"/><text x="540" y="56" text-anchor="middle" font-weight="600">Transform</text><text x="540" y="74" text-anchor="middle" font-size="11" class="fmuted">(crop, flip) → tensor → normalize</text>
+        <line x1="640" y1="60" x2="676" y2="60" stroke="currentColor" marker-end="url(#arr8)"/>
+        <rect x="680" y="30" width="170" height="60" rx="6" fill="none" stroke="currentColor"/><text x="765" y="56" text-anchor="middle" font-weight="600">DataLoader</text><text x="765" y="74" text-anchor="middle" font-size="11" class="fmuted">shuffle · batches of 128</text>
+      </g>
+    </svg>
+    <figcaption>The images stay whole on disk; the Subset just remembers which image numbers to serve.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Function</th><th>Train on</th><th>Score on</th><th>Augment</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">stage1_data("A", seed)</td><td><span class="mono">c10_pretrain</span> 40k</td><td>CIFAR-10 test 10k</td><td>crop + flip</td><td>A's stage 1 (and the baseline)</td></tr>
+        <tr><td class="mono">stage1_data("C", seed)</td><td><span class="mono">c100_pretrain</span> 40k</td><td>CIFAR-100 test 10k</td><td>crop + flip</td><td>C's stage 1 · <span class="mono">"B"</span> raises: B has no stage 1</td></tr>
+        <tr><td class="mono">stage2_data(seed)</td><td>SVHN train 73,257</td><td>SVHN test 26,032</td><td>crop only</td><td>every arm's stage 2</td></tr>
+        <tr><td class="mono">stage3_data("a_seen", seed)</td><td><span class="mono">a_seen_seed{seed}</span> 5k</td><td>CIFAR-10 test</td><td>crop + flip</td><td>relearning on A-seen</td></tr>
+        <tr><td class="mono">stage3_data("never_seen", seed)</td><td><span class="mono">c10_never_seen</span> 5k</td><td>CIFAR-10 test</td><td>crop + flip</td><td>relearning on never-seen</td></tr>
+        <tr><td class="mono">probe_data()</td><td><span class="mono">c10_never_seen</span> 5k</td><td>CIFAR-10 test</td><td>none, no shuffle</td><td>the linear probe</td></tr>
+        <tr><td class="mono">val_data()</td><td colspan="2"><span class="mono">c10_val</span> 5k (evaluation only)</td><td>none, no shuffle</td><td>calibration</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card note">
+      <h3>Rules built in</h3>
+      <ul>
+        <li><b>Augment only for training.</b> Evaluation, validation and the probe always get plain images.</li>
+        <li><b>Splits come from the training sets</b>, so validation and never-seen load <span class="mono">train=True</span> with augmentation off.</li>
+        <li><b>The seed fixes the shuffle order</b>: same seed, same order; tested.</li>
+        <li><b>One normalization</b> (CIFAR-10 mean/std) for everything.</li>
+        <li>Batch 128, 4 workers kept alive between epochs, no <span class="mono">pin_memory</span> (not on MPS).</li>
+      </ul>
+    </div>
+    <div class="card note">
+      <h3>When writing run scripts</h3>
+      <p>The loaders start 4 worker processes, and on macOS each one re-runs the script that started it. So every script that uses them must keep its code under <span class="mono">if __name__ == "__main__":</span>, or the workers crash.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 16. Model -->
+<section id="model">
+  <div class="eyebrow">16 · The model</div>
+  <h2>ResNet-18 for small images, with named heads (<span class="mono">src/model.py</span>)</h2>
+  <p>New to CNNs? <a href="https://claude.ai/artifact/1dEJDaCKRv3BR7vxzTD1YK">How a CNN sees a picture</a> walks through filters and feature maps with a tiny 7×7 example.</p>
+  <p class="table-title">The backbone: what happens to one 32×32 image</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>Shape out (channels × size)</th><th>Learns</th><th>Learnable numbers</th></tr></thead>
+      <tbody>
+        <tr><td>input</td><td class="num">3 × 32 × 32</td><td>red, green, blue</td><td class="num">—</td></tr>
+        <tr><td><b>stem</b>: 3×3 conv, stride 1 <span class="why">(changed from 7×7 stride 2)</span></td><td class="num">64 × 32 × 32</td><td>edges, colour spots</td><td class="num">1,856</td></tr>
+        <tr><td>max-pool <span class="why">(removed)</span></td><td class="num">64 × 32 × 32</td><td>—</td><td class="num">0</td></tr>
+        <tr><td>layer1 · 2 residual blocks</td><td class="num">64 × 32 × 32</td><td>corners, curves, simple textures</td><td class="num">147,968</td></tr>
+        <tr><td>layer2 · halves size, doubles channels</td><td class="num">128 × 16 × 16</td><td>textures, small parts</td><td class="num">525,568</td></tr>
+        <tr><td>layer3</td><td class="num">256 × 8 × 8</td><td>object parts</td><td class="num">2,099,712</td></tr>
+        <tr><td>layer4</td><td class="num">512 × 4 × 4</td><td>whole-object patterns</td><td class="num">8,393,728</td></tr>
+        <tr><td>average pool → <b>features</b></td><td class="num">512</td><td>"which patterns are present"</td><td class="num">0</td></tr>
+        <tr><td><b>total backbone</b></td><td></td><td></td><td class="num"><b>11,168,832</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why"><b>Why the stem is changed:</b> the original ResNet-18 is built for 224×224 photos and shrinks the image 4× straight away; a 32×32 image would be 8×8 before any real learning, and 1×1 at the end. With the small stem, layer4 still has a 4×4 map. Typical CIFAR-10 accuracy goes from ~87% to ~93–95%.</p>
+  <p class="why"><b>Residual blocks:</b> each block adds its input back onto its output (<span class="mono">output = ReLU(F(x) + x)</span>), so it only learns an improvement, and the training signal reaches the early layers. That is what makes 17 conv layers trainable.</p>
+
+  <p class="table-title">The heads: one per question, one active at a time</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Stage 1</th><th>Stage 2</th><th>Stage 3</th><th>Heads in the final checkpoint</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-a">A</span></td><td><span class="mono">"cifar10"</span> (10)</td><td><span class="mono">"svhn"</span> (10)</td><td><span class="mono">"relearn"</span> (10)</td><td>cifar10 · svhn · relearn</td></tr>
+        <tr><td><span class="pill pill-b">B</span></td><td>—</td><td><span class="mono">"svhn"</span></td><td><span class="mono">"relearn"</span></td><td>svhn · relearn</td></tr>
+        <tr><td><span class="pill pill-c">C</span></td><td><span class="mono">"cifar100"</span> (100)</td><td><span class="mono">"svhn"</span></td><td><span class="mono">"relearn"</span></td><td>cifar100 · svhn · relearn</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card">
+      <h3>How to use it</h3>
+      <ul>
+        <li><span class="mono">net.add_head(name)</span>: new random head, becomes active.</li>
+        <li><span class="mono">net.set_head("cifar10")</span>: switch to A's old head for the old-head test, then back to <span class="mono">"svhn"</span>.</li>
+        <li><span class="mono">net(x)</span>: scores from the active head. <span class="mono">net.features(x)</span>: the 512 features, for the probe.</li>
+        <li><span class="mono">net.train()</span> while training, <span class="mono">net.eval()</span> for any measurement (BatchNorm).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Guarantees (tested)</h3>
+      <ul>
+        <li>Adding a head that exists is refused, so A's trained head can't be wiped.</li>
+        <li>An inactive head stays <b>exactly</b> unchanged during training (checked after SGD steps with momentum and weight decay).</li>
+        <li>New heads go to the model's device (MPS) automatically.</li>
+        <li>Checkpoints include every head.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 17. Training and saving -->
+<section id="training">
+  <div class="eyebrow">17 · Training, measuring and saving</div>
+  <h2>One loop for every stage (<span class="mono">src/train.py</span>, <span class="mono">evaluate.py</span>, <span class="mono">utils.py</span>)</h2>
+  <p>Stages differ only in their settings. The loop counts in <b>steps</b> (one step = one batch of 128); run scripts turn epochs into steps (<span class="mono">epochs × steps per epoch</span>, e.g. 40k ÷ 128 = 313 steps per epoch). The run script also decides <em>what</em> to measure and passes it in as <span class="mono">measure(step)</span>, so the loop never changes.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Stage 1</th><th>Stage 2</th><th>Stage 3</th></tr></thead>
+      <tbody>
+        <tr><td><b>Length</b></td><td>epochs × 313 steps (epochs still to choose)</td><td>fixed number of SVHN steps (calibration)</td><td>fixed step budget (calibration)</td></tr>
+        <tr><td><b>Learning rate</b></td><td>cosine from 0.1</td><td>cosine from 0.1</td><td>warmup, then constant</td></tr>
+        <tr><td><b>Trains</b></td><td>backbone + <span class="mono">cifar10</span> / <span class="mono">cifar100</span> head</td><td>backbone + <span class="mono">svhn</span> head</td><td>backbone + <span class="mono">relearn</span> head</td></tr>
+        <tr><td><b>measure(step)</b></td><td>test acc + loss every epoch</td><td>SVHN test · A's old head · probe</td><td>CIFAR-10 test, dense early</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <figure class="small">
+    <svg viewBox="0 0 880 170" role="img" aria-label="One training step: take the next batch, compute scores and loss, backward, optimizer step, schedule step, add to running totals. At chosen steps the loop calls measure, logs a line, and resets the totals; every few steps it saves a resume file.">
+      <defs><marker id="arr9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <rect x="10" y="20" width="120" height="50" rx="6" class="fa-soft"/><text x="70" y="42" text-anchor="middle" font-weight="600">next batch</text><text x="70" y="58" text-anchor="middle" font-size="11" class="fmuted">128 images</text>
+        <line x1="130" y1="45" x2="156" y2="45" stroke="currentColor" marker-end="url(#arr9)"/>
+        <rect x="160" y="20" width="140" height="50" rx="6" class="fa-soft"/><text x="230" y="42" text-anchor="middle" font-weight="600">scores → loss</text><text x="230" y="58" text-anchor="middle" font-size="11" class="fmuted">cross-entropy</text>
+        <line x1="300" y1="45" x2="326" y2="45" stroke="currentColor" marker-end="url(#arr9)"/>
+        <rect x="330" y="20" width="160" height="50" rx="6" class="fa-soft"/><text x="410" y="42" text-anchor="middle" font-weight="600">backward + step</text><text x="410" y="58" text-anchor="middle" font-size="11" class="fmuted">optimizer, then schedule</text>
+        <line x1="490" y1="45" x2="516" y2="45" stroke="currentColor" marker-end="url(#arr9)"/>
+        <rect x="520" y="20" width="150" height="50" rx="6" class="fa-soft"/><text x="595" y="42" text-anchor="middle" font-weight="600">add to totals</text><text x="595" y="58" text-anchor="middle" font-size="11" class="fmuted">loss, correct (on GPU)</text>
+        <path d="M670 45 H700 V130 H40 V76" fill="none" stroke="currentColor" marker-end="url(#arr9)"/>
+        <text x="370" y="148" text-anchor="middle" class="fmuted">repeat until total_steps</text>
+        <rect x="720" y="10" width="150" height="56" rx="6" fill="none" stroke="currentColor"/><text x="795" y="32" text-anchor="middle" font-weight="600">measuring step?</text><text x="795" y="50" text-anchor="middle" font-size="11" class="fmuted">measure → log → reset</text>
+        <rect x="720" y="80" width="150" height="56" rx="6" fill="none" stroke="currentColor" stroke-dasharray="5 4"/><text x="795" y="102" text-anchor="middle" font-weight="600">resume step?</text><text x="795" y="120" text-anchor="middle" font-size="11" class="fmuted">save resume file</text>
+        <line x1="700" y1="45" x2="716" y2="38" stroke="currentColor" marker-end="url(#arr9)"/>
+        <line x1="700" y1="100" x2="716" y2="108" stroke="currentColor" marker-end="url(#arr9)"/>
+      </g>
+    </svg>
+    <figcaption>One step = one batch. Step 0 is measured before any training, so every curve has a true starting point.</figcaption>
+  </figure>
+  <figure class="small">
+    <svg viewBox="0 0 880 220" role="img" aria-label="Two learning-rate schedules. Left, stages 1 and 2: cosine, starting at 0.1 and falling smoothly to 0 at the last step. Right, stage 3: a short linear warmup from almost 0 up to the base rate, then constant until the end.">
+      <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+        <text x="60" y="24" font-weight="600">Stages 1 and 2 · cosine</text>
+        <line x1="60" y1="160" x2="400" y2="160" class="sline"/><line x1="60" y1="40" x2="60" y2="160" class="sline"/>
+        <text x="52" y="44" text-anchor="end" class="fmuted">0.1</text><text x="52" y="164" text-anchor="end" class="fmuted">0</text>
+        <path d="M60.0,40.0 L64.2,40.0 L68.5,40.2 L72.8,40.4 L77.0,40.7 L81.2,41.2 L85.5,41.7 L89.8,42.3 L94.0,42.9 L98.2,43.7 L102.5,44.6 L106.8,45.5 L111.0,46.5 L115.2,47.7 L119.5,48.8 L123.8,50.1 L128.0,51.5 L132.2,52.9 L136.5,54.4 L140.8,55.9 L145.0,57.6 L149.2,59.3 L153.5,61.0 L157.8,62.9 L162.0,64.7 L166.2,66.7 L170.5,68.7 L174.8,70.7 L179.0,72.8 L183.2,74.9 L187.5,77.0 L191.8,79.2 L196.0,81.5 L200.2,83.7 L204.5,86.0 L208.8,88.3 L213.0,90.6 L217.2,92.9 L221.5,95.3 L225.8,97.6 L230.0,100.0 L234.2,102.4 L238.5,104.7 L242.8,107.1 L247.0,109.4 L251.2,111.7 L255.5,114.0 L259.8,116.3 L264.0,118.5 L268.2,120.8 L272.5,123.0 L276.8,125.1 L281.0,127.2 L285.2,129.3 L289.5,131.3 L293.8,133.3 L298.0,135.3 L302.2,137.1 L306.5,139.0 L310.8,140.7 L315.0,142.4 L319.2,144.1 L323.5,145.6 L327.8,147.1 L332.0,148.5 L336.2,149.9 L340.5,151.2 L344.8,152.3 L349.0,153.5 L353.2,154.5 L357.5,155.4 L361.8,156.3 L366.0,157.1 L370.2,157.7 L374.5,158.3 L378.8,158.8 L383.0,159.3 L387.2,159.6 L391.5,159.8 L395.8,160.0 L400.0,160.0" fill="none" class="sa" stroke-width="2.5"/>
+        <text x="60" y="180" class="fmuted">step 0</text><text x="400" y="180" text-anchor="end" class="fmuted">last step</text>
+        <text x="230" y="205" text-anchor="middle" class="fmuted">big steps early, tiny steps at the end</text>
+
+        <text x="500" y="24" font-weight="600">Stage 3 · warmup, then constant</text>
+        <line x1="500" y1="160" x2="840" y2="160" class="sline"/><line x1="500" y1="40" x2="500" y2="160" class="sline"/>
+        <text x="492" y="44" text-anchor="end" class="fmuted">base</text><text x="492" y="164" text-anchor="end" class="fmuted">0</text>
+        <path d="M500.0,160.0 L504.2,145.0 L508.5,130.0 L512.8,115.0 L517.0,100.0 L521.2,85.0 L525.5,70.0 L529.8,55.0 L534.0,40.0 L538.2,40.0 L542.5,40.0 L546.8,40.0 L551.0,40.0 L555.2,40.0 L559.5,40.0 L563.8,40.0 L568.0,40.0 L572.2,40.0 L576.5,40.0 L580.8,40.0 L585.0,40.0 L589.2,40.0 L593.5,40.0 L597.8,40.0 L602.0,40.0 L606.2,40.0 L610.5,40.0 L614.8,40.0 L619.0,40.0 L623.2,40.0 L627.5,40.0 L631.8,40.0 L636.0,40.0 L640.2,40.0 L644.5,40.0 L648.8,40.0 L653.0,40.0 L657.2,40.0 L661.5,40.0 L665.8,40.0 L670.0,40.0 L674.2,40.0 L678.5,40.0 L682.8,40.0 L687.0,40.0 L691.2,40.0 L695.5,40.0 L699.8,40.0 L704.0,40.0 L708.2,40.0 L712.5,40.0 L716.8,40.0 L721.0,40.0 L725.2,40.0 L729.5,40.0 L733.8,40.0 L738.0,40.0 L742.2,40.0 L746.5,40.0 L750.8,40.0 L755.0,40.0 L759.2,40.0 L763.5,40.0 L767.8,40.0 L772.0,40.0 L776.2,40.0 L780.5,40.0 L784.8,40.0 L789.0,40.0 L793.2,40.0 L797.5,40.0 L801.8,40.0 L806.0,40.0 L810.2,40.0 L814.5,40.0 L818.8,40.0 L823.0,40.0 L827.2,40.0 L831.5,40.0 L835.8,40.0 L840.0,40.0" fill="none" class="sc" stroke-width="2.5"/>
+        <line x1="534" y1="40" x2="534" y2="160" stroke="currentColor" stroke-dasharray="3 3" opacity=".4"/>
+        <text x="540" y="150" class="fmuted">warmup</text>
+        <text x="500" y="180" class="fmuted">step 0</text><text x="840" y="180" text-anchor="end" class="fmuted">step budget</text>
+        <text x="670" y="205" text-anchor="middle" class="fmuted">same rate all the way: curves of different arms stay comparable</text>
+      </g>
+    </svg>
+    <figcaption>One function, <span class="mono">lr_factor</span>, gives both: the fraction of the base learning rate at each step. Warmup protects what the backbone kept from the random new head; the constant rate keeps the aligned relearning curves fair.</figcaption>
+  </figure>
+
+  <div class="two">
+    <div class="card">
+      <h3>The optimizer</h3>
+      <ul>
+        <li>SGD, momentum 0.9, weight decay 5e-4, batch 128 (<span class="mono">configs/base.yaml</span>).</li>
+        <li>Built <b>fresh for every stage</b>: SVHN momentum never leaks into stage 3.</li>
+        <li>Holds the <b>backbone + active head only</b>. Inactive heads are not in it at all, so A's old head can't move (tested).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Measuring (<span class="mono">evaluate.py</span>)</h3>
+      <ul>
+        <li><span class="mono">evaluate(net, loader, device)</span> → accuracy and loss over every image.</li>
+        <li>Always eval mode + no gradients: measuring never changes the model, including BatchNorm statistics (tested).</li>
+        <li>Loss summed per image, so the smaller last batch isn't over-weighted. Matches an independent calculation exactly.</li>
+        <li><span class="mono">evaluate_head(..., "cifar10")</span> for A's old-head test; always switches back.</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="table-title">What one log line looks like</p>
+  <pre class="tree" style="white-space:pre-wrap">{"step": 313, "epoch": 1.0, "lr": 0.0999, "train_loss": 1.62, "train_acc": 0.41, "seconds": 28.4, "test_acc": 0.52, "test_loss": 1.33}</pre>
+  <p class="why"><span class="mono">train_loss</span> and <span class="mono">train_acc</span> are averaged since the previous line; everything after <span class="mono">seconds</span> is whatever <span class="mono">measure(step)</span> returned. Read a whole log with <span class="mono">pd.read_json(path, lines=True)</span>.</p>
+
+  <p class="table-title">Files every run writes</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What's in it</th><th>Kept?</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">checkpoints/seed1/A_stage1.pt</td><td>Model with every head, which head is active, <span class="mono">info</span> (arm, stage, seed + results), the config, provenance. ~45 MB</td><td>yes, never overwritten</td></tr>
+        <tr><td class="mono">checkpoints/seed1/B_stage0.pt</td><td>B's starting weights (stage 0 = before any training)</td><td>yes</td></tr>
+        <tr><td class="mono">logs/seed1/A_stage1.jsonl</td><td>One line per measurement (above)</td><td>yes</td></tr>
+        <tr><td class="mono">logs/seed1/A_stage1.meta.json</td><td>Run name, seed, config, provenance</td><td>yes</td></tr>
+        <tr><td class="mono">…/resume.pt</td><td>Model + optimizer momentum + schedule + step + random states (Python, numpy, PyTorch, MPS)</td><td>no: deleted when the run finishes</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two">
+    <div class="card note">
+      <h3>Provenance: every result says how it was made</h3>
+      <ul>
+        <li>Fingerprint of <span class="mono">splits.npz</span> (now <span class="mono">f3308e9a4aafd2c0</span>), the device (type and GPU name), PyTorch / torchvision / Python versions, date.</li>
+        <li><b>Loading stops</b> if a checkpoint was made on the other kind of device (MPS vs CUDA).</li>
+        <li>The full config used.</li>
+        <li><b>Loading stops</b> if the split on disk isn't the one a checkpoint was trained with.</li>
+        <li>Checkpoints are loaded safely: the file can't run code.</li>
+      </ul>
+    </div>
+    <div class="card note">
+      <h3>Crash-safe</h3>
+      <ul>
+        <li>A resume file every N steps, written to <span class="mono">.tmp</span> then renamed, so it's never half-written.</li>
+        <li>Rerun the same command → it continues from the last resume step. Tested: stopping and resuming gives <b>exactly</b> the same weights (with the same batches).</li>
+        <li>Log lines after the resume point are removed, so each step appears once.</li>
+        <li>A loss of NaN/inf stops the run immediately.</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="table-title">Settings so far (<span class="mono">configs/</span>)</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Settings</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">base.yaml</td><td>device cuda:0 · gpu_memory_fraction 0.33 · optimizer sgd · momentum 0.9 · weight_decay 5.0e-4 · batch_size 128 · num_workers 8</td></tr>
+        <tr><td class="mono">stage1.yaml</td><td>lr 0.1 · schedule cosine · warmup_epochs 0 · <b>epochs 200</b> (fixed) · eval_every_epochs 1 · resume_every_epochs 10</td></tr>
+        <tr><td class="mono">stage2.yaml</td><td>lr 0.1 · cosine · <b>steps: not set (calibration)</b> · calibration_steps 11,460 (20 SVHN epochs) · measure every 500 · probe every 1,000</td></tr>
+        <tr><td class="mono">stage3.yaml</td><td><b>calibrated: false</b> · lr 0.01 (placeholder) · lr_choices 0.003 / 0.01 / 0.03 / 0.1 · constant · warmup 100 · steps 2,000 · measure every 25 until 500, then every 100</td></tr>
+        <tr><td class="mono">probe.yaml</td><td>C 1.0 (placeholder) · C_choices 0.01 / 0.1 / 1 / 10 · max_iter 2,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why"><b>YAML tip:</b> write <span class="mono">5.0e-4</span>, not <span class="mono">5e-4</span>; YAML reads the second as text.</p>
+</section>
+
+<!-- 18. Decisions -->
+<section id="decisions">
+  <div class="eyebrow">18 · Decisions so far</div>
+  <h2>What is fixed, and why</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Decision</th><th>Choice</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Validation set</td><td>5k from the held-out 10k; the other 5k is never-seen</td><td>Choosing settings never touches the test set or the pretrain pool.</td></tr>
+        <tr><td>C's pretraining</td><td>40k CIFAR-100 images, same recipe and length as A</td><td>A and C differ only in <em>what</em> they learned, not how much.</td></tr>
+        <tr><td>Splitting</td><td>Per class (equal counts), fixed seed, saved once</td><td>No subset is light on any class; every run uses the same images.</td></tr>
+        <tr><td>Normalization</td><td>CIFAR-10 mean/std for every dataset and stage</td><td>Only the data changes between stages, not the input scaling (section 13).</td></tr>
+        <tr><td>Augmentation</td><td>Crop (pad 4) + flip for CIFAR; crop only for SVHN; none for evaluation</td><td>Big accuracy gain for ResNet on CIFAR; flipped digits aren't digits.</td></tr>
+        <tr><td>Model</td><td>ResNet-18, CIFAR stem, random init, named heads</td><td>Standard for 32×32 images; heads swap, the backbone carries knowledge.</td></tr>
+        <tr><td>Stage-3 heads</td><td>Every arm gets a fresh <span class="mono">"relearn"</span> head</td><td>Compares backbones only. A's old head is kept just for the old-head test.</td></tr>
+        <tr><td>Device</td><td><b>Lab Blackwell GPU (CUDA)</b> for every real run; the Mac for code and smoke tests. Set in <span class="mono">base.yaml</span> or <span class="mono">--device</span>; never falls back</td><td>MPS and CUDA give slightly different numbers, so one experiment uses one kind of device. Every checkpoint records its device; loading one from the other kind stops.</td></tr>
+        <tr><td>Data workers</td><td><span class="mono">num_workers: 8</span>, fixed for the whole experiment</td><td>The worker count changes which random augmentation each image gets (smoke test: 35.0% with 4 vs 35.6% with 8, same seed).</td></tr>
+        <tr><td>GPU memory</td><td>0.33 of the GPU (32 GB), set automatically on CUDA</td><td>Lab rule; ResNet-18 needs only a few GB.</td></tr>
+        <tr><td>Provenance</td><td>Every checkpoint and log records its config, a fingerprint of <span class="mono">splits.npz</span>, library versions and the date; loading stops if the split changed</td><td>Every result can be traced back to exactly how it was made.</td></tr>
+        <tr><td>B's start</td><td>Saved as <span class="mono">B_stage0.pt</span> (stage 0 = starting weights)</td><td>B's starting point is explicit, and it is what the probe measures for "B before training".</td></tr>
+        <tr><td>LR schedules</td><td>Cosine from 0.1 in stage 1; cosine in stage 2 from a calibrated rate (0.1, 0.03 or 0.01); warmup then constant in stage 3</td><td>Cosine is the standard for full training; a constant rate in stage 3 keeps relearning curves comparable, and warmup protects kept features from the random new head.</td></tr>
+        <tr><td>Optimizer per stage</td><td>Fresh SGD each stage, over backbone + active head only</td><td>No momentum carries over between stages; inactive heads can't change.</td></tr>
+        <tr><td>Shared starting weights</td><td>Every arm builds its model right after <span class="mono">set_seed(seed)</span></td><td>Within a seed, A, B and C start from the same backbone; only stage 1 makes them differ.</td></tr>
+        <tr><td>Smoke runs</td><td>Saved under <span class="mono">checkpoints/smoke/</span> and <span class="mono">logs/smoke/</span></td><td>Test runs never block or mix with real results.</td></tr>
+        <tr><td>Stage-1 length</td><td><b>200 epochs</b>, retrained for every seed</td><td>Standard ResNet-18 recipe (~95%); cheap on the lab GPU; seed spread then includes stage-1 variation.</td></tr>
+        <tr><td>New heads are seeded</td><td><span class="mono">set_seed(seed)</span> right before adding the <span class="mono">svhn</span> / <span class="mono">relearn</span> head</td><td>Runs repeat exactly, and within a seed every arm (and both subsets) gets the identical new head.</td></tr>
+        <tr><td>Probe</td><td>Standardized logistic regression on 512 features, trained on never-seen 5k, scored on test; <b>C = 0.1</b>, chosen once on validation</td><td>Deterministic, takes about a second, never changes the model (tested).</td></tr>
+        <tr><td>Calibration</td><td>On seed 1, validation split only, logs under <span class="mono">logs/calibration/</span>; real runs refuse until calibrated</td><td>Settings are chosen without touching the test set.</td></tr>
+        <tr><td>Never overwrite</td><td>Splits, heads, checkpoints and logs refuse to overwrite</td><td>Finished results can't be lost by accident.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-title">Still open</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Question</th><th>Decided by</th></tr></thead>
+      <tbody>
+        <tr><td>Stage-2 length</td><td>Calibration: when A's old head reaches ~10% (step 5)</td></tr>
+        <tr><td>Stage-3 learning rate, warmup and step budget; one LR or a sweep per arm</td><td>Calibration on validation (step 6)</td></tr>
+        <tr><td>Probe settings (classifier, epochs, regularization)</td><td>Calibration (step 6); then fixed for all arms</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

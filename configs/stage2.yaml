@@ -1,0 +1,34 @@
+# Stage 2: every arm trains on SVHN with a new "svhn" head. Same settings for every arm.
+
+lr: 0.03                  # starting learning rate. Fixed 2026-11-02 by the calibration rule below
+lr_choices: [0.1, 0.03, 0.01]
+
+# Calibration rule (fixed 2026-11-02, BEFORE the 0.03 and 0.01 runs):
+# The lr 0.1 calibration (A, seed 1) wiped almost all CIFAR-10 knowledge: probe 94% → ~39% within
+# 1,000 steps, vs 35.75% for an untrained network (B at its start). So gentler rates are tried too.
+# Use the GENTLEST lr in lr_choices where, at the end of the 20-epoch calibration:
+#   A: SVHN test ≥ 95% and A's old head ≤ 15%     (A is really overwritten and looks forgotten)
+#   B: SVHN test ≥ 95%                            (B, from random weights, learns SVHN as well)
+# Then choose `steps` from that lr's calibration curve.
+# Result (A, seed 1, validation, end of 20 epochs):
+#   0.01: A SVHN 96.7%, old head 25.5% (fails: A doesn't look forgotten); B SVHN 95.8%
+#   0.03: A SVHN 96.9%, old head 13.7%; B SVHN 96.3%  → passes, gentlest → lr = 0.03
+#   0.1:  A SVHN 97.1%, old head 13.5%
+# Length rule (fixed before reading the 0.03 curve): the smallest whole number of SVHN epochs at
+# which A's old head is ≤ 15%. 0.03 curve: 16.4% (500 steps), 16.8% (1,000), 14.8% (1,500, epoch
+# 2.62) → 3 epochs = 1,719 steps. Every real run must end with SVHN ≥ 95%, else lengthen.
+# Seed 1 at 3 epochs: A 96.6%, C 96.5%, B 94.2% → B fails, so the length is increased
+# (3-epoch runs archived, not used). Procedure, fixed BEFORE the trial: try 4, then 5, ... whole
+# SVHN epochs with a full schedule for B, seed 1 (run_stage2.py --calibrate --steps N); use the
+# first length where B reaches SVHN ≥ 95% (A and C only get better with more steps). Seeds 2 and 3
+# use that length as is; their SVHN accuracies are reported, not used to change it again.
+# Trial: B, seed 1, 4 epochs (2,292 steps) → SVHN 95.18% ≥ 95% → steps = 2292.
+schedule: cosine          # from lr down to 0 over all steps
+warmup_steps: 0
+
+steps: 2292               # 4 SVHN epochs (573 steps each), from the calibration and trial above. Never change it now.
+calibration_steps: 11460  # length of the calibration run: 20 SVHN epochs
+
+measure_every_steps: 250  # SVHN test accuracy + the old head (A: CIFAR-10, C: CIFAR-100)
+probe_every_steps: 500    # CIFAR-10 probe (also always at the start and the end)
+resume_every_steps: 500   # resume file, in case the run is interrupted

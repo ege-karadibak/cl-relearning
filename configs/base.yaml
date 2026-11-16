@@ -1,0 +1,13 @@
+# Shared recipe: every stage starts from these settings.
+# A stage file (stage1.yaml, ...) can replace any of them.
+
+# device: one kind of device for the whole experiment (results are compared across runs)
+device: cuda:0            # lab Blackwell: cuda:0 or cuda:1 (check nvidia-smi first); on the Mac: mps
+gpu_memory_fraction: 0.33 # CUDA only. Lab rule: 0.33 of the GPU = 32 GB per user
+
+optimizer: sgd
+momentum: 0.9
+weight_decay: 5.0e-4      # write it with a dot: YAML reads "5e-4" as text
+
+batch_size: 128           # same as data.py
+num_workers: 8            # background processes preparing batches (the Mac smoke test used 4)

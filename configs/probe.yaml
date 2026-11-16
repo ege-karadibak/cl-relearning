@@ -1,0 +1,8 @@
+# Linear probe: logistic regression on the backbone's 512 features.
+# Trained on the never-seen 5k, scored on CIFAR-10 test. Same settings for every arm and stage.
+
+C: 0.1                    # regularization (smaller = stronger). Fixed 2026-11-02 with --choose-c on A, stage 1,
+                          # seed 1 (validation: 0.01 → 94.40%, 0.1 → 94.36%, 1 → 94.16%, 10 → 93.32%);
+                          # 0.1 ties the best and is not at the edge of the range. Never change it now.
+C_choices: [0.01, 0.1, 1.0, 10.0]   # values compared on validation by --choose-c
+max_iter: 2000            # enough for the solver to finish on 5k × 512 features

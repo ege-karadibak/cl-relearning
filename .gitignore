@@ -1,0 +1,19 @@
+# Environment
+.venv/
+venv/
+
+# Data and outputs
+data/
+checkpoints/
+logs/smoke/
+wandb/
+
+# Python / Jupyter
+__pycache__/
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Lab server setup (local only)
+LAB.md

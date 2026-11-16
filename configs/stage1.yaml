@@ -1,0 +1,11 @@
+# Stage 1: A learns CIFAR-10, C learns CIFAR-100. Same settings for both.
+
+lr: 0.1                   # starting learning rate
+schedule: cosine          # lr goes smoothly from 0.1 down to 0 over all epochs
+warmup_epochs: 0          # no warmup: both arms start from random weights
+
+epochs: 200               # fixed on 2026-11-02 (lab GPU: ~25 min per run). Never change it:
+                          # A and C, and every seed, must train equally long.
+
+eval_every_epochs: 1      # test accuracy and loss after every epoch
+resume_every_epochs: 10   # save a resume file this often, in case the run is interrupted

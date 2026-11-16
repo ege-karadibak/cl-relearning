@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a CNN sees a picture</title>
+<style>
+:root { --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5d6670; --line:#e3e1db; --accent:#2a78d6; --soft:#e8f1fc; }
+@media (prefers-color-scheme: dark) { :root { --bg:#16181b; --surface:#1f2226; --ink:#eceae5; --muted:#a3a9b0; --line:#33373c; --accent:#5aa0ef; --soft:#1d2a3a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:880px; margin:0 auto; padding:40px 20px 80px; display:grid; gap:44px; }
+h1 { font-size:2rem; line-height:1.2; margin:0 0 8px; text-wrap:balance; }
+h2 { font-size:1.3rem; margin:0; }
+p { margin:0; max-width:68ch; }
+.lede { color:var(--muted); font-size:1.08rem; }
+section { display:grid; gap:14px; }
+.step { font:600 .78rem/1 ui-monospace,Menlo,monospace; color:var(--accent); letter-spacing:.05em; text-transform:uppercase; }
+.row { display:flex; flex-wrap:wrap; align-items:center; gap:18px 22px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:20px; }
+.op { font-size:1.6rem; color:var(--muted); }
+.g { display:grid; gap:6px; justify-items:center; }
+.cap { font-size:.85rem; color:var(--muted); text-align:center; max-width:220px; }
+table.grid { border-collapse:collapse; }
+table.grid td { width:30px; height:30px; text-align:center; font:600 .8rem/1 ui-monospace,Menlo,monospace; border:1px solid var(--line);
+  background:color-mix(in srgb, var(--accent) calc(var(--v) * 100%), var(--surface)); color:var(--ink); }
+table.grid td[style*="--v:1.00"], table.grid td[style*="--v:0.67"], table.grid td[style*="--v:0.5"] { color:#fff; }
+table.grid td.hl { outline:3px solid #eb6834; outline-offset:-2px; }
+table.grid.small td { width:26px; height:26px; }
+.note { background:var(--soft); border-radius:10px; padding:14px 18px; }
+.note b { color:var(--accent); }
+.sum { font:600 1rem ui-monospace,Menlo,monospace; }
+.tbl { border-collapse:collapse; width:100%; background:var(--surface); font-size:.95rem; }
+.tbl th, .tbl td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+.tbl th { background:var(--soft); }
+.bar { display:inline-block; height:10px; background:var(--accent); border-radius:3px; vertical-align:middle; margin-right:8px; }
+</style></head>
+<body><main>
+
+<header>
+  <h1>How a CNN sees a picture</h1>
+  <p class="lede">One tiny example, step by step: a 7×7 picture of the letter <b>L</b>, two simple filters, and the feature maps they make. Your ResNet-18 does exactly this, just bigger.</p>
+</header>
+
+<section>
+  <div class="step">Step 1 · The picture</div>
+  <h2>To the computer, a picture is a grid of numbers</h2>
+  <div class="row">
+    <div class="g"><table class="grid" aria-label="the letter L: 1 = ink, empty = 0"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">the letter L: 1 = ink, empty = 0</div></div>
+    <p>Each square is one pixel. <b>1</b> means ink, an empty square means 0 (background). Real CIFAR images are 32×32 with 3 colours, but the idea is the same.</p>
+  </div>
+</section>
+
+<section>
+  <div class="step">Step 2 · Filters</div>
+  <h2>A filter is a tiny pattern to look for</h2>
+  <div class="row">
+    <div class="g"><table class="grid small" aria-label="filter 1: a vertical line"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr></table><div class="cap">filter 1: a vertical line</div></div>
+    <div class="g"><table class="grid small" aria-label="filter 2: a horizontal line"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">filter 2: a horizontal line</div></div>
+    <p>Each filter is a 3×3 grid of weights. In a real network these are <b>learned</b> during training; here we picked them by hand so they're easy to read.</p>
+  </div>
+</section>
+
+<section>
+  <div class="step">Step 3 · Sliding the filter</div>
+  <h2>Put the filter on one spot, multiply, add up</h2>
+  <div class="row">
+    <div class="g"><table class="grid" aria-label="the orange square is where the filter sits"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="hl" style="--v:0.00"></td><td class="hl" style="--v:1.00">1</td><td class="hl" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="hl" style="--v:0.00"></td><td class="hl" style="--v:1.00">1</td><td class="hl" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="hl" style="--v:0.00"></td><td class="hl" style="--v:1.00">1</td><td class="hl" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">the orange square is where the filter sits</div></div>
+    <span class="op">→</span>
+    <div class="g"><table class="grid small" aria-label="the 9 pixels under it"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr></table><div class="cap">the 9 pixels under it</div></div>
+    <span class="op">×</span>
+    <div class="g"><table class="grid small" aria-label="filter 1"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr></table><div class="cap">filter 1</div></div>
+    <span class="op">=</span>
+    <div class="g"><div class="sum">0+1+0<br>0+1+0<br>0+1+0<br>= 3</div><div class="cap">a perfect match</div></div>
+  </div>
+  <p>Multiply each pixel by the filter weight on top of it, then add the 9 results. A high number means "this spot looks like my pattern". On an empty spot the answer is 0.</p>
+  <p>Then subtract a small threshold (1) and turn negatives into 0. That's the <b>ReLU</b> step: weak matches disappear, strong ones stay. So this spot gets <b>3 − 1 = 2</b>.</p>
+  <p>Now slide the filter one square to the right, do it again, and repeat for <b>every</b> position. Writing all the answers into a new grid gives a <b>feature map</b>.</p>
+</section>
+
+<section>
+  <div class="step">Step 4 · Feature maps</div>
+  <h2>A feature map shows <em>where</em> a pattern is</h2>
+  <div class="row">
+    <div class="g"><table class="grid" aria-label="the picture"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:1.00">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">the picture</div></div>
+    <span class="op">→</span>
+    <div class="g"><table class="grid" aria-label="feature map 1: vertical lines"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.50">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.50">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">feature map 1: vertical lines</div></div>
+    <div class="g"><table class="grid" aria-label="feature map 2: horizontal lines"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.50">1</td><td class="" style="--v:1.00">2</td><td class="" style="--v:1.00">2</td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.50">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">feature map 2: horizontal lines</div></div>
+  </div>
+  <p>Same picture, two filters, two maps. Map 1 lights up along the <b>upright stroke</b> of the L; map 2 lights up along the <b>bottom stroke</b>. Everything else is 0.</p>
+  <div class="note"><b>This is what a feature map is:</b> a grid the same size as the picture, where each number says how strongly one pattern appears at that spot. The first layer of your ResNet makes <b>64</b> of these (64 filters), for edges and colours.</div>
+</section>
+
+<section>
+  <div class="step">Step 5 · The next layer</div>
+  <h2>The next layer looks at the feature maps, not the picture</h2>
+  <div class="row">
+    <div class="g"><table class="grid small" aria-label="map 1: vertical"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.50">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.50">1</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">map 1: vertical</div></div>
+    <span class="op">+</span>
+    <div class="g"><table class="grid small" aria-label="map 2: horizontal"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.50">1</td><td class="" style="--v:1.00">2</td><td class="" style="--v:1.00">2</td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.50">1</td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">map 2: horizontal</div></div>
+    <span class="op">→</span>
+    <div class="g"><table class="grid" aria-label="new map: corners"><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:1.00">2</td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr><tr><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td><td class="" style="--v:0.00"></td></tr></table><div class="cap">new map: corners</div></div>
+  </div>
+  <p>This layer's filter asks: <b>"is there a vertical line just above me AND a horizontal line just to my right?"</b> It reads both maps at once and adds the two answers (then the same threshold and ReLU).</p>
+  <p>Only one spot says yes: the <b>bottom-left corner</b> of the L. So this new feature map is a <b>corner detector</b>, built from the two line detectors.</p>
+  <div class="note"><b>The key idea:</b> every layer does the same thing as step 3, but its "picture" is the previous layer's feature maps. Lines → corners → shapes → parts → objects. Each layer builds on the one before.</div>
+</section>
+
+<section>
+  <div class="step">Step 6 · Summarise</div>
+  <h2>Average each map into one number</h2>
+  <div class="row" style="display:block">
+    <table class="tbl">
+      <tr><th>Feature map</th><th>Average</th><th>Meaning</th></tr>
+      <tr><td>vertical lines</td><td><span class="bar" style="width:49px"></span>0.16</td><td>some vertical line somewhere</td></tr>
+      <tr><td>horizontal lines</td><td><span class="bar" style="width:49px"></span>0.16</td><td>some horizontal line somewhere</td></tr>
+      <tr><td>corners</td><td><span class="bar" style="width:12px"></span>0.04</td><td>a corner somewhere</td></tr>
+    </table>
+  </div>
+  <p>This is the <b>average pooling</b> step. It forgets <em>where</em> things were and keeps <em>how much</em> of each pattern the picture has. The result is a short list of numbers: the <b>feature vector</b>. In your ResNet it has <b>512</b> numbers.</p>
+</section>
+
+<section>
+  <div class="step">Step 7 · The head decides</div>
+  <h2>The head turns the feature vector into an answer</h2>
+  <div class="row" style="display:block">
+    <table class="tbl">
+      <tr><th>Possible answer</th><th>What the head checks</th><th>Score</th></tr>
+      <tr><td><b>L</b></td><td>vertical + horizontal + a corner</td><td><span class="bar" style="width:106px"></span>high ✓</td></tr>
+      <tr><td>I</td><td>vertical, but <em>no</em> horizontal</td><td><span class="bar" style="width:33px"></span>low</td></tr>
+      <tr><td>a flat line</td><td>horizontal, but <em>no</em> vertical</td><td><span class="bar" style="width:2px"></span>low</td></tr>
+    </table>
+  </div>
+  <p>The head gives each possible answer a score from the feature vector; the highest wins. Everything before the head is the <b>backbone</b> (it understands the picture); the head only makes the final choice. That's why your experiment can swap heads between datasets and keep the backbone.</p>
+</section>
+
+<section>
+  <div class="step">In your real network</div>
+  <h2>Same steps, bigger numbers</h2>
+  <table class="tbl">
+    <tr><th>This example</th><th>Your ResNet-18</th></tr>
+    <tr><td>7×7 picture, 1 colour</td><td>32×32 picture, 3 colours (red, green, blue)</td></tr>
+    <tr><td>2 hand-made filters → 2 feature maps</td><td>64 learned filters → 64 feature maps in the first layer</td></tr>
+    <tr><td>2 layers (lines, then corners)</td><td>17 conv layers: edges → textures → parts → objects</td></tr>
+    <tr><td>3 numbers in the feature vector</td><td>512 numbers</td></tr>
+    <tr><td>head chooses between 3 letters</td><td>head chooses between 10 classes (CIFAR-10, SVHN) or 100 (CIFAR-100)</td></tr>
+  </table>
+</section>
+
+</main></body></html>

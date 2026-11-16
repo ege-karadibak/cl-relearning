@@ -1,0 +1,38 @@
+# Stage 3: every arm relearns CIFAR-10 from a 5k subset with a fresh "relearn" head.
+# Same settings for every arm and subset.
+
+calibrated: true          # lr and steps chosen with --calibrate (results below); fixed 2026-11-02
+
+lr: 0.003                 # chosen by calibration (see below). Never change it now.
+lr_choices: [0.003, 0.01, 0.03, 0.1]   # values tried by the calibration runs
+
+# Calibration rule (fixed 2026-11-02, BEFORE any stage-3 run):
+# For every lr in lr_choices, run A, B and C (seed 1) on the never-seen subset, scored on validation
+# (run_stage3.py --calibrate --lr X). ONE lr is used for all arms (so the arms differ only in their
+# backbone): the lr with the highest MEAN validation accuracy over A, B and C at the end of the budget.
+# Checks, reported with the choice: (1) if any arm's own best lr beats the shared lr by > 2 points
+# for that arm, say so in the write-up; (2) if, at the chosen lr, any arm still gains > 1 point in
+# the last 500 steps, the budget (`steps`) is too short and is doubled before the real runs.
+#
+# Result (A, B, C, seed 1, never-seen subset, validation):
+#   single point at step 2,000:   0.003 → mean 78.74 · 0.01 → 78.89 · 0.03 → 79.25 · 0.1 → 74.50
+#   average of steps 1,500–2,000: 0.003 → mean 76.65 · 0.01 → 75.61 · 0.03 → 75.11 · 0.1 → 69.80
+#                                 (A 85.1 / B 66.3 / C 78.5 at 0.003; A 79.0 / B 70.9 / C 75.5 at 0.03)
+# With a constant lr on 5k images, validation accuracy jumps 5–10 points between measurements, so a
+# single point is mostly noise. Decision (before any real stage-3 run): apply the rule to the
+# average of the last 500 steps instead of the single last point → lr = 0.003. The literal reading
+# would have given 0.03; both are reported in the write-up.
+# Check (1), per-arm best vs shared (averaged): A 85.1 at 0.003 (shared) ✓, C 78.5 at 0.003 ✓,
+#   B 70.9 at 0.03 vs 66.3 at 0.003 → B is 4.6 points below its own best: stated in the write-up
+#   (it favours A over B; the A vs C comparison is unaffected: both at their best).
+#   Also: 0.003 is the lowest rate tried, so A's and C's best could be lower still.
+# Check (2), averaged gain of the last 500 steps at 0.003: A −0.1, B +0.4, C +0.6 points (all ≤ 1)
+#   → the curves have levelled off, the 2,000-step budget is kept.
+schedule: constant        # same learning rate all the way, so relearning curves stay comparable
+warmup_steps: 100         # protects what the backbone kept from the random new head's first big updates
+
+steps: 2000               # step budget: ~50 passes over the 5k images (40 steps per pass)
+
+dense_until: 500          # measure every dense_every steps until here...
+dense_every: 25
+sparse_every: 100         # ...then every sparse_every steps
