@@ -16,5 +16,6 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Lab server setup (local only)
-LAB.md
+# Our own notes stay local: only the README is published
+*.md
+!README.md
