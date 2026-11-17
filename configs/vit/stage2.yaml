@@ -1,0 +1,21 @@
+# ViT stage 2: every arm trains on SVHN with a new "svhn" head. Same settings for every arm.
+
+lr: 3.0e-4                # placeholder (AdamW): set by the calibration below
+lr_choices: [1.0e-3, 3.0e-4, 1.0e-4]
+
+# Calibration rule: the same as for ResNet-18 (configs/stage2.yaml).
+# Use the GENTLEST lr in lr_choices where, at the end of the 20-epoch calibration (seed 1, validation):
+#   A: SVHN test ≥ 95% and A's old head ≤ 15%     (A is really overwritten and looks forgotten)
+#   B: SVHN test ≥ 95%                            (B, from random weights, learns SVHN as well)
+# Length: the smallest whole number of SVHN epochs at which A's old head is ≤ 15%; then check that
+# B reaches SVHN ≥ 95% at that length (else try one more epoch at a time, for B, seed 1).
+# Results: (to fill in)
+schedule: cosine          # from lr down to 0 over all steps
+warmup_steps: 0           # same as ResNet-18
+
+steps: null               # set by the calibration; real runs refuse to start until then
+calibration_steps: 11460  # length of the calibration run: 20 SVHN epochs
+
+measure_every_steps: 250  # SVHN test accuracy + the old head (A: CIFAR-10, C: CIFAR-100)
+probe_every_steps: 500    # CIFAR-10 probe (also always at the start and the end)
+resume_every_steps: 500   # resume file, in case the run is interrupted

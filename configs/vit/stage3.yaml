@@ -1,0 +1,23 @@
+# ViT stage 3: every arm relearns CIFAR-10 from a 5k subset with a fresh "relearn" head.
+# Same settings for every arm and subset.
+
+calibrated: false         # set to true once lr is chosen with --calibrate; real runs refuse until then
+
+lr: 1.0e-4                # placeholder (AdamW): set by the calibration below
+lr_choices: [3.0e-5, 1.0e-4, 3.0e-4, 1.0e-3]
+
+# Calibration rule: the same as for ResNet-18 (configs/stage3.yaml).
+# For every lr in lr_choices, run A, B and C (seed 1) on the never-seen subset, scored on validation
+# (run_stage3.py --arch vit --calibrate --lr X). ONE lr for all arms: the highest MEAN validation
+# accuracy over A, B and C, averaged over the last 500 steps of the budget.
+# Checks, reported with the choice: (1) any arm whose own best lr beats the shared lr by > 2 points;
+# (2) if any arm still gains > 1 point in the last 500 steps, double the budget (`steps`).
+# Results: (to fill in)
+schedule: constant        # same learning rate all the way, so relearning curves stay comparable
+warmup_steps: 100         # protects what the backbone kept from the random new head's first big updates
+
+steps: 2000               # step budget: ~50 passes over the 5k images (40 steps per pass)
+
+dense_until: 500          # measure every dense_every steps until here...
+dense_every: 25
+sparse_every: 100         # ...then every sparse_every steps

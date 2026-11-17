@@ -6,6 +6,7 @@
                                                                        calibration: one learning rate
     python src/run_stage3.py --arm A --seed 1 --subset a_seen --smoke  short test on the smoke checkpoints
     add --device cuda:1 (or mps) to use another device than the one in configs/base.yaml
+    add --arch vit for the ViT experiment (configs/vit/, checkpoints/vit/, logs/vit/)
 
 Starts from {arm}_stage2.pt (both subsets of an arm start from the same model). Adds a fresh
 "relearn" head, then: warmup, constant learning rate, `steps` steps on the 5k subset.
@@ -24,8 +25,10 @@ import argparse                              # command-line options
 import data
 from data import stage3_data, val_data
 from evaluate import evaluate
+from model import ARCHS
 from train import train
-from utils import CHECKPOINTS, LOGS, Logger, checkpoint_path, get_device, load_checkpoint, load_config, set_seed
+from utils import (ROOT, Logger, checkpoint_path, config_file, get_device, load_checkpoint, load_config,
+                   roots, set_seed)
 
 
 def parse_args():
@@ -38,6 +41,7 @@ def parse_args():
     mode.add_argument("--calibrate", action="store_true", help="score on validation; use with --lr")
     mode.add_argument("--smoke", action="store_true", help="short test on the smoke checkpoints")
     parser.add_argument("--lr", type=float, default=None, help="learning rate to try (calibration only)")
+    parser.add_argument("--arch", default="resnet18", choices=ARCHS, help="backbone (default: resnet18)")
     return parser.parse_args()
 
 
@@ -50,37 +54,40 @@ def measure_steps(total, dense_until, dense_every, sparse_every):
 
 def main():
     args = parse_args()
-    arm, seed, subset = args.arm, args.seed, args.subset
-    cfg = load_config("stage3")
+    arm, seed, subset, arch = args.arm, args.seed, args.subset, args.arch
+    cfg = load_config("stage3", arch)
+    stage_file = config_file("stage3", arch).relative_to(ROOT)   # e.g. configs/stage3.yaml, for messages
     if args.lr is not None and not args.calibrate:
-        raise SystemExit("--lr is only for calibration; real runs use the lr in configs/stage3.yaml.")
+        raise SystemExit(f"--lr is only for calibration; real runs use the lr in {stage_file}.")
+    cfg["arch"] = arch                       # recorded with the log
+    ckpt_root, log_root = roots(arch)
 
     run_name = f"{arm}_stage3_{subset}"
     if args.smoke:
         cfg.update(steps=60, warmup_steps=10, dense_until=20, dense_every=10, sparse_every=20)
-        start_path = CHECKPOINTS / "smoke" / f"seed{seed}" / f"{arm}_stage2.pt"
-        log_folder = LOGS / "smoke"
+        start_path = ckpt_root / "smoke" / f"seed{seed}" / f"{arm}_stage2.pt"
+        log_folder = log_root / "smoke"
         for old_file in (log_folder / f"seed{seed}" / f"{run_name}.jsonl",
                          log_folder / f"seed{seed}" / f"{run_name}.meta.json"):
             old_file.unlink(missing_ok=True)     # smoke outputs are throwaway: start clean
     elif args.calibrate:
         if args.lr is None:
-            raise SystemExit("--calibrate needs --lr (one of lr_choices in configs/stage3.yaml).")
+            raise SystemExit(f"--calibrate needs --lr (one of lr_choices in {stage_file}).")
         cfg["lr"] = args.lr
         run_name += f"_lr{args.lr:g}"
-        start_path, log_folder = checkpoint_path(arm, 2, seed), LOGS / "calibration"
+        start_path, log_folder = checkpoint_path(arm, 2, seed, arch), log_root / "calibration"
     else:
         if not cfg["calibrated"]:
-            raise SystemExit("configs/stage3.yaml is not calibrated yet: choose lr with --calibrate, "
+            raise SystemExit(f"{stage_file} is not calibrated yet: choose lr with --calibrate, "
                              "then set calibrated: true.")
-        start_path, log_folder = checkpoint_path(arm, 2, seed), LOGS
+        start_path, log_folder = checkpoint_path(arm, 2, seed, arch), log_root
     resume = log_folder / f"seed{seed}" / f"{run_name}.resume.pt"
 
     device = get_device(args.device or cfg["device"], cfg["gpu_memory_fraction"])
     cfg["device"] = str(device)
-    data.configure(cfg["num_workers"], pin_memory=device.type == "cuda")
+    data.configure(cfg["num_workers"], pin_memory=device.type == "cuda", **data.augment_from(cfg))
 
-    net, meta = load_checkpoint(start_path, device)
+    net, meta = load_checkpoint(start_path, device, arch=arch)
     set_seed(seed)                           # same new head (and data order) for every arm within a seed
     net.add_head("relearn")                  # fresh CIFAR-10 head for every arm: only backbones are compared
     train_loader, test_loader = stage3_data(subset, seed)

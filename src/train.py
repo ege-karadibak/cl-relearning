@@ -24,13 +24,27 @@ import torch.nn.functional as F              # cross_entropy
 
 # ---------------------------------------------------------------- optimizer and schedule
 def make_optimizer(net, cfg):
-    """SGD over the backbone + the active head, with the settings from the config.
+    """The optimizer over the backbone + the active head, with the settings from the config.
 
-    cfg keys: lr, momentum, weight_decay, nesterov (optional, default False)
+    cfg["optimizer"] (default "sgd"):
+        "sgd"    ResNet-18. keys: lr, momentum, weight_decay, nesterov (optional, default False)
+        "adamw"  ViT. keys: lr, betas, weight_decay. Weight decay only on weight matrices:
+                 none on biases, LayerNorms, the position embedding and the class token
     """
-    params = list(net.backbone.parameters()) + list(net.heads[net.active].parameters())
-    return torch.optim.SGD(params, lr=cfg["lr"], momentum=cfg["momentum"],
-                           weight_decay=cfg["weight_decay"], nesterov=cfg.get("nesterov", False))
+    name = cfg.get("optimizer", "sgd")
+    if name == "sgd":
+        params = list(net.backbone.parameters()) + list(net.heads[net.active].parameters())
+        return torch.optim.SGD(params, lr=cfg["lr"], momentum=cfg["momentum"],
+                               weight_decay=cfg["weight_decay"], nesterov=cfg.get("nesterov", False))
+    if name == "adamw":
+        named = list(net.backbone.named_parameters()) + list(net.heads[net.active].named_parameters())
+        no_decay = lambda n, p: p.ndim < 2 or n.endswith(("class_token", "pos_embedding"))
+        groups = [
+            {"params": [p for n, p in named if not no_decay(n, p)], "weight_decay": cfg["weight_decay"]},
+            {"params": [p for n, p in named if no_decay(n, p)], "weight_decay": 0.0},
+        ]
+        return torch.optim.AdamW(groups, lr=cfg["lr"], betas=tuple(cfg["betas"]))
+    raise ValueError(f"unknown optimizer {name!r}, use 'sgd' or 'adamw'")
 
 
 def lr_factor(step, total_steps, warmup_steps, schedule):
@@ -137,7 +151,7 @@ def train(net, train_loader, device, cfg, total_steps, measure_at, measure, logg
 
     net:          a Net with the head to train already added and active
     train_loader: shuffled, augmented loader from data.py
-    cfg:          the stage config (lr, momentum, weight_decay, schedule)
+    cfg:          the stage config (optimizer settings, schedule; grad_clip: optional, ViT only)
     total_steps:  how many batches to train on
     measure_at:   steps at which to call measure, e.g. {0, 313, 626, ...}; the last step is always added
     measure:      function(step) → dict of numbers, e.g. {"test_acc": ..., "test_loss": ...}
@@ -152,6 +166,8 @@ def train(net, train_loader, device, cfg, total_steps, measure_at, measure, logg
     """
     optimizer = make_optimizer(net, cfg)
     scheduler = make_scheduler(optimizer, total_steps, warmup_steps, cfg["schedule"])
+    grad_clip = cfg.get("grad_clip")         # None (ResNet-18): no clipping
+    trained = [p for group in optimizer.param_groups for p in group["params"]]
     measure_at = set(measure_at) | {total_steps}
     steps_per_epoch = len(train_loader)
 
@@ -183,6 +199,8 @@ def train(net, train_loader, device, cfg, total_steps, measure_at, measure, logg
 
         optimizer.zero_grad()
         loss.backward()
+        if grad_clip:
+            torch.nn.utils.clip_grad_norm_(trained, grad_clip)   # shrink the step if the gradient is too large
         optimizer.step()
         scheduler.step()
 
@@ -269,3 +287,29 @@ if __name__ == "__main__":                   # run: python src/train.py
         steps = [json.loads(l)["step"] for l in open(log.path)]
         print("logged steps:", steps, "(expect 0, 5, 10, 15, 20 once each)")
         print("resume file removed at the end:", not resume.exists())
+
+        # 4. the ViT recipe: AdamW with two weight-decay groups, gradient clipping, crash and resume
+        vit_cfg = {"optimizer": "adamw", "lr": 1e-3, "betas": [0.9, 0.999], "weight_decay": 0.05,
+                   "grad_clip": 1.0, "schedule": "cosine"}
+        set_seed(3)
+        net = Net("vit").to(device)
+        net.add_head("cifar10")
+        groups = make_optimizer(net, vit_cfg).param_groups
+        print("adamw groups (decay, no decay):", [len(g["params"]) for g in groups],
+              "| weight decay:", [g["weight_decay"] for g in groups])
+        resume = Path(tmp) / "vit_resume.pt"
+        log = Logger("vit_crash", seed=1, folder=tmp)
+        try:
+            train(net, train_loader, device, vit_cfg, 20, set(range(0, 21, 5)), crash_at_15, log,
+                  warmup_steps=5, resume_path=resume, resume_every=10)
+        except KeyboardInterrupt:
+            print("vit crashed at step 15; resume file exists:", resume.exists())
+        set_seed(3)
+        net = Net("vit").to(device)
+        net.add_head("cifar10")
+        log = Logger("vit_crash", seed=1, folder=tmp, resume=True)
+        summary = train(net, train_loader, device, vit_cfg, 20, set(range(0, 21, 5)), measure, log,
+                        warmup_steps=5, resume_path=resume, resume_every=10)
+        print("vit summary:", summary)
+        steps = [json.loads(l)["step"] for l in open(log.path)]
+        print("vit logged steps:", steps, "(expect 0, 5, 10, 15, 20 once each)")

@@ -1,0 +1,15 @@
+# ViT recipe, read after configs/base.yaml (device, memory, workers and batch size stay shared).
+# A ViT stage file (configs/vit/stage1.yaml, ...) can replace any of these.
+# Same settings for every arm and stage of the ViT experiment.
+
+optimizer: adamw          # ViTs trained from scratch don't train well with plain SGD
+betas: [0.9, 0.999]
+weight_decay: 0.05        # on weight matrices only; none on biases, LayerNorms, position embedding, class token
+momentum: null            # SGD only, not used by AdamW
+
+grad_clip: 1.0            # clip the gradient norm: a ViT from scratch can have early loss spikes
+
+augment: randaugment      # crop + flip (no flip for SVHN), then RandAugment, on every training set
+randaugment_ops: 2        # how many random image operations per image
+randaugment_magnitude: 9  # how strong they are (0-30). If SVHN can't reach 95% in calibration,
+                          # lower it for every stage and say why.

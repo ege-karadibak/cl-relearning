@@ -5,6 +5,7 @@
     python src/run_stage1.py --arm B --seed 1            B: only saves its starting weights
     python src/run_stage1.py --arm A --seed 1 --smoke    1-epoch test run, saved apart from real results
     add --device cuda:1 (or mps) to use another device than the one in configs/base.yaml
+    add --arch vit for the ViT experiment (configs/vit/, checkpoints/vit/, logs/vit/)
 
 Every arm builds its model right after set_seed(seed), so within a seed A, B and C
 start from the same backbone weights; only stage 1 makes them different.
@@ -26,7 +27,8 @@ from data import stage1_data
 from evaluate import evaluate
 from model import Net
 from train import train
-from utils import (CHECKPOINTS, LOGS, Logger, checkpoint_path, get_device, load_config,
+from model import ARCHS
+from utils import (ROOT, Logger, checkpoint_path, config_file, get_device, load_config, roots,
                    save_checkpoint, set_seed)
 
 HEAD = {"A": "cifar10", "C": "cifar100"}     # which head each arm learns in stage 1
@@ -37,31 +39,34 @@ def parse_args():
     parser.add_argument("--arm", required=True, choices=["A", "B", "C"])
     parser.add_argument("--seed", required=True, type=int)
     parser.add_argument("--smoke", action="store_true",
-                        help="train 1 epoch and save under checkpoints/smoke/ and logs/smoke/")
+                        help="train 1 epoch and save under checkpoints/smoke/ and logs/smoke/ (ViT: .../vit/smoke/)")
     parser.add_argument("--device", default=None,
                         help="cuda:0, cuda:1 or mps (default: the device in configs/base.yaml)")
+    parser.add_argument("--arch", default="resnet18", choices=ARCHS, help="backbone (default: resnet18)")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    arm, seed = args.arm, args.seed
-    cfg = load_config("stage1")
+    arm, seed, arch = args.arm, args.seed, args.arch
+    cfg = load_config("stage1", arch)
     if args.smoke:
         cfg["epochs"] = 1
     elif cfg["epochs"] <= 1:
-        raise SystemExit("configs/stage1.yaml still says epochs: 1. Set the real number of epochs "
-                         "first, or use --smoke for a test run.")
+        raise SystemExit(f"{config_file('stage1', arch).relative_to(ROOT)} still says epochs: 1. Set the real "
+                         "number of epochs first, or use --smoke for a test run.")
+    cfg["arch"] = arch                       # recorded with the log and the checkpoint
+    ckpt_root, log_root = roots(arch)
 
     # where this run's files go
     if args.smoke:
-        final = CHECKPOINTS / "smoke" / f"seed{seed}" / f"{arm}_stage1.pt"
-        log_folder = LOGS / "smoke"
+        final = ckpt_root / "smoke" / f"seed{seed}" / f"{arm}_stage1.pt"
+        log_folder = log_root / "smoke"
         for old in (final.parent, log_folder / f"seed{seed}"):   # smoke outputs are throwaway: start clean
             shutil.rmtree(old, ignore_errors=True)
     else:
-        final = checkpoint_path(arm, 1, seed)
-        log_folder = LOGS
+        final = checkpoint_path(arm, 1, seed, arch)
+        log_folder = log_root
     resume = final.with_name(final.stem + ".resume.pt")
 
     if arm != "B" and final.exists():
@@ -69,11 +74,11 @@ def main():
 
     device = get_device(args.device or cfg["device"], cfg["gpu_memory_fraction"])
     cfg["device"] = str(device)              # record the device actually used
-    data.configure(cfg["num_workers"], pin_memory=device.type == "cuda")
+    data.configure(cfg["num_workers"], pin_memory=device.type == "cuda", **data.augment_from(cfg))
 
     # the starting weights: same for every arm within a seed
     set_seed(seed)
-    net = Net().to(device)
+    net = Net(arch).to(device)
     start = final.with_name("B_stage0.pt")
     if not start.exists():
         save_checkpoint(net, start, info={"arm": "B", "stage": 0, "seed": seed})

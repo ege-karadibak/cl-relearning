@@ -7,6 +7,9 @@ Every run script uses these, so all runs are set up, saved and logged the same w
     logs/seed{seed}/{run_name}.jsonl                  one line of metrics per evaluation
     logs/seed{seed}/{run_name}.meta.json              what produced the run (config, split, versions)
 
+These are the ResNet-18 folders (the default). The ViT has its own, never mixed with them:
+    checkpoints/vit/..., logs/vit/..., configs/vit/...
+
 Every checkpoint and every log records where it came from: the config, a fingerprint
 of data/splits.npz, the device, library versions and the date. Loading a checkpoint stops
 if the split on disk is not the one it was trained with, or if it was made on another
@@ -27,7 +30,7 @@ import torch                                 # tensors, saving, MPS
 import torchvision                           # version, for provenance
 import yaml                                  # reading configs/*.yaml
 
-from model import Net                        # to rebuild a model when loading a checkpoint
+from model import ARCHS, Net                 # to rebuild a model when loading a checkpoint
 
 # ---------------------------------------------------------------- settings
 ROOT = Path(__file__).resolve().parent.parent   # project root (works from any folder)
@@ -37,6 +40,23 @@ CONFIGS = ROOT / "configs"
 SPLITS = ROOT / "data" / "splits.npz"
 
 REQUIRED_INFO = ("arm", "stage", "seed")     # every checkpoint must say what it is
+
+
+def check_arch(arch):
+    if arch not in ARCHS:
+        raise ValueError(f"unknown arch {arch!r}, use one of {list(ARCHS)}")
+
+
+def roots(arch="resnet18"):
+    """(checkpoint folder, log folder) of one backbone.
+
+    "resnet18": checkpoints/ and logs/, as they have always been
+    "vit":      checkpoints/vit/ and logs/vit/
+    """
+    check_arch(arch)
+    if arch == "resnet18":
+        return CHECKPOINTS, LOGS
+    return CHECKPOINTS / arch, LOGS / arch
 
 
 # ---------------------------------------------------------------- device
@@ -114,18 +134,19 @@ def provenance(device=None):
 
 
 # ---------------------------------------------------------------- checkpoints
-def checkpoint_path(arm, stage, seed):
-    """Where one model is saved, e.g. checkpoints/seed1/A_stage1.pt.
+def checkpoint_path(arm, stage, seed, arch="resnet18"):
+    """Where one model is saved, e.g. checkpoints/seed1/A_stage1.pt (ViT: checkpoints/vit/seed1/...).
 
     arm: "A", "B" or "C"
     stage: 0 (starting weights, before any training), 1 or 2
     seed: 1, 2, 3, ...
+    arch: "resnet18" or "vit"
     """
     if arm not in ("A", "B", "C"):
         raise ValueError(f"unknown arm {arm!r}, use 'A', 'B' or 'C'")
     if stage not in (0, 1, 2):
         raise ValueError(f"unknown stage {stage!r}, use 0, 1 or 2")
-    return CHECKPOINTS / f"seed{seed}" / f"{arm}_stage{stage}.pt"
+    return roots(arch)[0] / f"seed{seed}" / f"{arm}_stage{stage}.pt"
 
 
 def save_checkpoint(net, path, info, config=None):
@@ -144,6 +165,7 @@ def save_checkpoint(net, path, info, config=None):
         raise FileExistsError(f"{path} already exists; a finished stage is never overwritten")
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
+        "arch": net.arch,                    # which backbone, to rebuild it when loading
         "state": net.state_dict(),           # all weights: backbone + every head
         "heads": list(net.heads),            # head names, in order, to rebuild them when loading
         "active": net.active,                # which head was in use
@@ -153,13 +175,15 @@ def save_checkpoint(net, path, info, config=None):
     }, path)
 
 
-def load_checkpoint(path, device, allow_other_device=False):
+def load_checkpoint(path, device, allow_other_device=False, arch=None):
     """Load a saved model. Returns (net, meta).
 
     meta = {"info": ..., "config": ..., "provenance": ...}
     Stops if data/splits.npz is not the file the model was trained with, or if the model
     was made on another kind of device (allow_other_device=True only for looking at results,
     never for continuing the experiment).
+    The backbone is rebuilt from the saved "arch"; checkpoints made before the ViT was added
+    have none, and are ResNet-18. arch: if given, stop when the checkpoint is another backbone.
     The saved weights include heads, so the heads are added before loading.
     """
     ckpt = torch.load(path, map_location=device, weights_only=True)   # weights_only: never runs code from the file
@@ -170,7 +194,10 @@ def load_checkpoint(path, device, allow_other_device=False):
     if made_on is not None and made_on != torch.device(device).type and not allow_other_device:
         raise RuntimeError(f"{path} was made on {made_on}, but this run uses {torch.device(device).type}; "
                            "one experiment must use one kind of device")
-    net = Net().to(device)
+    saved_arch = ckpt.get("arch", "resnet18")
+    if arch is not None and saved_arch != arch:
+        raise RuntimeError(f"{path} is a {saved_arch} model, but this run uses {arch}")
+    net = Net(saved_arch).to(device)
     for name in ckpt["heads"]:
         net.add_head(name)
     net.load_state_dict(ckpt["state"])      # strict: fails loudly if anything doesn't match
@@ -218,18 +245,31 @@ class Logger:
 
 
 # ---------------------------------------------------------------- configs
-def load_config(stage_name):
-    """Read configs/base.yaml, then configs/{stage_name}.yaml on top of it.
+def config_file(stage_name, arch="resnet18"):
+    """The stage file of one backbone, e.g. configs/stage1.yaml or configs/vit/stage1.yaml."""
+    check_arch(arch)
+    return CONFIGS / f"{stage_name}.yaml" if arch == "resnet18" else CONFIGS / arch / f"{stage_name}.yaml"
+
+
+def load_config(stage_name, arch="resnet18"):
+    """Read configs/base.yaml, then the stage file on top of it.
 
     stage_name: "stage1", "stage2", "stage3" or "probe"
-    Settings in the stage file replace the same settings from base.yaml.
+    arch:       "resnet18": configs/base.yaml → configs/{stage_name}.yaml
+                "vit":      configs/base.yaml → configs/vit/base.yaml → configs/vit/{stage_name}.yaml
+                (the ViT shares only the device settings; it never reads a ResNet-18 stage file)
+    Settings in a later file replace the same settings from an earlier one.
     Returns a dict.
     """
-    with open(CONFIGS / "base.yaml") as f:
-        base = yaml.safe_load(f) or {}      # empty file → {}
-    with open(CONFIGS / f"{stage_name}.yaml") as f:
-        stage = yaml.safe_load(f) or {}
-    return {**base, **stage}
+    files = [CONFIGS / "base.yaml"]
+    if arch != "resnet18":
+        files.append(CONFIGS / arch / "base.yaml")
+    files.append(config_file(stage_name, arch))
+    cfg = {}
+    for path in files:
+        with open(path) as f:
+            cfg.update(yaml.safe_load(f) or {})   # empty file → {}
+    return cfg
 
 
 # ---------------------------------------------------------------- quick check
@@ -263,9 +303,21 @@ if __name__ == "__main__":                   # run: python src/utils.py
         print("checkpoint round trip identical:", same, "| heads:", list(loaded.heads), "| active:", loaded.active)
         print("meta:", meta["info"], meta["config"], meta["provenance"]["splits_sha256"])
 
+        vit = Net("vit").to(device)
+        vit.add_head("cifar10")
+        save_checkpoint(vit, Path(tmp) / "vit.pt", info={"arm": "A", "stage": 1, "seed": 1})
+        vit_loaded, _ = load_checkpoint(Path(tmp) / "vit.pt", device, arch="vit")
+        same = all(torch.equal(v, vit_loaded.state_dict()[k]) for k, v in vit.state_dict().items())
+        print("vit round trip identical:", same, "| arch:", vit_loaded.arch)
+        try:
+            load_checkpoint(Path(tmp) / "vit.pt", device, arch="resnet18")   # must refuse
+        except RuntimeError as e:
+            print("refused:", e)
+
         logger = Logger("test_run", seed=1, config={"lr": 0.1}, folder=tmp)
         logger.log(step=0, test_acc=torch.tensor(0.1))
         logger.log(step=500, test_acc=0.71)
         print("log meta:", json.loads(logger.meta_path.read_text())["config"])
 
-    print("config (empty files for now):", load_config("stage1"))
+    print("config:", load_config("stage1"))
+    print("roots:", roots("resnet18"), roots("vit"))

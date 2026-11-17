@@ -6,6 +6,7 @@ venv/
 data/
 checkpoints/
 logs/smoke/
+logs/vit/smoke/
 wandb/
 
 # Python / Jupyter

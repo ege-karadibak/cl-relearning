@@ -1,6 +1,8 @@
 """Analysis: turn the logs into the experiment's metrics. Reads logs only, never checkpoints.
 
     from metrics import load_stage3, curve_metrics, summary, memory_effect
+    load_stage3()                   ResNet-18 runs (logs/)
+    load_stage3(LOGS / "vit")       ViT runs (logs/vit/); every loader takes the folder the same way
 
 Stage-3 curves are noisy (constant learning rate on 5k images: test accuracy moves several
 points between measurements), so every metric below uses a SMOOTHED curve: each point is the

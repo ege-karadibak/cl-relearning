@@ -6,6 +6,7 @@
     python src/run_stage2.py --arm B --seed 1 --calibrate --steps 2292  trial of one exact length
     python src/run_stage2.py --arm A --seed 1 --smoke          short test on the smoke checkpoints
     add --device cuda:1 (or mps) to use another device than the one in configs/base.yaml
+    add --arch vit for the ViT experiment (configs/vit/, checkpoints/vit/, logs/vit/)
 
 Starts from:  A, C → {arm}_stage1.pt      B → B_stage0.pt (random start, no stage 1)
 Measures, every measure_every_steps:
@@ -28,9 +29,10 @@ import data
 from data import load_dataset, make_loader, stage2_data, val_data
 from evaluate import evaluate, evaluate_head
 from probe import Probe
+from model import ARCHS
 from train import train
-from utils import (CHECKPOINTS, LOGS, Logger, checkpoint_path, get_device, load_checkpoint, load_config,
-                   save_checkpoint, set_seed)
+from utils import (ROOT, Logger, checkpoint_path, config_file, get_device, load_checkpoint, load_config,
+                   roots, save_checkpoint, set_seed)
 
 OLD = {"A": ("cifar10", "cifar10"), "C": ("cifar100", "cifar100")}   # arm → (old head, its dataset)
 
@@ -46,22 +48,26 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=None, help="learning rate to try (calibration only)")
     parser.add_argument("--steps", type=int, default=None,
                         help="length to try, with a full schedule like a real run (calibration only)")
+    parser.add_argument("--arch", default="resnet18", choices=ARCHS, help="backbone (default: resnet18)")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    arm, seed = args.arm, args.seed
-    cfg = load_config("stage2")
-    probe_cfg = load_config("probe")
+    arm, seed, arch = args.arm, args.seed, args.arch
+    cfg = load_config("stage2", arch)
+    probe_cfg = load_config("probe", arch)
+    stage_file = config_file("stage2", arch).relative_to(ROOT)   # e.g. configs/stage2.yaml, for messages
     if (args.lr is not None or args.steps is not None) and not args.calibrate:
-        raise SystemExit("--lr and --steps are only for calibration; real runs use configs/stage2.yaml.")
+        raise SystemExit(f"--lr and --steps are only for calibration; real runs use {stage_file}.")
+    cfg["arch"] = arch                       # recorded with the log and the checkpoint
+    ckpt_root, log_root = roots(arch)
     run_name = f"{arm}_stage2"
 
     # how long, and where things go
     if args.smoke:
         cfg.update(steps=200, measure_every_steps=100, probe_every_steps=100, resume_every_steps=100)
-        ckpt_dir, log_folder = CHECKPOINTS / "smoke" / f"seed{seed}", LOGS / "smoke"
+        ckpt_dir, log_folder = ckpt_root / "smoke" / f"seed{seed}", log_root / "smoke"
         start_path = ckpt_dir / ("B_stage0.pt" if arm == "B" else f"{arm}_stage1.pt")
         final = ckpt_dir / f"{arm}_stage2.pt"
         for old_file in (final, log_folder / f"seed{seed}" / f"{arm}_stage2.jsonl",
@@ -75,24 +81,24 @@ def main():
         if args.steps is not None:           # a trial of one exact length
             cfg["steps"] = args.steps
             run_name += f"_steps{args.steps}"
-        start_path = checkpoint_path(arm, 0 if arm == "B" else 1, seed)
-        final, log_folder = None, LOGS / "calibration"
+        start_path = checkpoint_path(arm, 0 if arm == "B" else 1, seed, arch)
+        final, log_folder = None, log_root / "calibration"
     else:
         if cfg["steps"] is None:
-            raise SystemExit("configs/stage2.yaml has no `steps` yet. Run the calibration first "
+            raise SystemExit(f"{stage_file} has no `steps` yet. Run the calibration first "
                              "(--calibrate), then set steps.")
-        start_path = checkpoint_path(arm, 0 if arm == "B" else 1, seed)
-        final, log_folder = checkpoint_path(arm, 2, seed), LOGS
+        start_path = checkpoint_path(arm, 0 if arm == "B" else 1, seed, arch)
+        final, log_folder = checkpoint_path(arm, 2, seed, arch), log_root
     if final is not None and final.exists():
         raise SystemExit(f"{final} already exists: stage 2 for arm {arm}, seed {seed} is done.")
     resume = (final.with_name(final.stem + ".resume.pt") if final is not None
-              else LOGS / "calibration" / f"seed{seed}" / f"{run_name}.resume.pt")
+              else log_root / "calibration" / f"seed{seed}" / f"{run_name}.resume.pt")
 
     device = get_device(args.device or cfg["device"], cfg["gpu_memory_fraction"])
     cfg["device"] = str(device)
-    data.configure(cfg["num_workers"], pin_memory=device.type == "cuda")
+    data.configure(cfg["num_workers"], pin_memory=device.type == "cuda", **data.augment_from(cfg))
 
-    net, meta = load_checkpoint(start_path, device)
+    net, meta = load_checkpoint(start_path, device, arch=arch)
     set_seed(seed)                           # same new head (and data order) for every arm within a seed
     net.add_head("svhn")                     # A's / C's old head stays in the model, untouched
     train_loader, svhn_test = stage2_data(seed)

@@ -1,0 +1,7 @@
+# ViT linear probe: logistic regression on the backbone's 384 features (the class token).
+# Trained on the never-seen 5k, scored on CIFAR-10 test. Same settings for every arm and stage.
+
+C: 0.1                    # placeholder: choose it with --choose-c on A, stage 1, seed 1 (validation),
+                          # the same way as for ResNet-18; then never change it.
+C_choices: [0.01, 0.1, 1.0, 10.0]   # values compared on validation by --choose-c
+max_iter: 2000            # enough for the solver to finish on 5k × 384 features

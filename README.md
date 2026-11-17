@@ -70,3 +70,25 @@ python -c "import sys; sys.path.insert(0, 'src'); from utils import splits_finge
 ```
 
 If a run stops, run the same command again: it continues from the last resume file. The server setup for our lab is kept in a local `LAB.md`, which is not in the repo.
+
+## Two backbones: ResNet-18 and ViT
+
+The same A/B/C experiment runs with two backbones, chosen with `--arch`. ResNet-18 is the default: every command without `--arch` runs exactly as before (the ResNet-18 results are tagged `resnet18-v1`).
+
+| | ResNet-18 (default) | ViT (`--arch vit`) |
+|---|---|---|
+| Model | ResNet-18 for 32×32 images, 11.2M parameters, 512 features | torchvision ViT: 4×4 patches, 6 blocks, width 384, 6 heads, 10.7M parameters, 384 features (class token) |
+| Recipe | SGD, crop + flip | AdamW, gradient clipping, crop + flip + RandAugment |
+| Configs | `configs/*.yaml` | `configs/base.yaml` (device only) → `configs/vit/base.yaml` → `configs/vit/*.yaml` |
+| Outputs | `checkpoints/seed*/`, `logs/seed*/` | `checkpoints/vit/seed*/`, `logs/vit/seed*/` |
+
+Both use the same data, splits, stages, probe and metrics. The ViT commands are the ResNet-18 ones plus `--arch vit`, e.g.
+
+```bash
+python src/run_stage1.py --arm A --seed 1 --arch vit --smoke
+python src/probe.py --arm A --stage 1 --seed 1 --arch vit --choose-c
+python src/run_stage2.py --arm A --seed 1 --arch vit --calibrate --lr 3e-4
+python src/run_stage3.py --arm A --seed 1 --subset never_seen --arch vit --calibrate --lr 1e-4
+```
+
+The ViT settings in `configs/vit/` start as placeholders. Real runs refuse to start until they are set: stage-1 `epochs` from a baseline run, then the probe's `C`, the stage-2 `lr`/`steps` and the stage-3 `lr`, chosen by the same calibration rules as for ResNet-18. For analysis, `metrics.load_stage3(LOGS / "vit")`.

@@ -28,12 +28,26 @@ CIFAR10_STD = (0.2470, 0.2435, 0.2616)       # used for every dataset and stage
 BATCH_SIZE = 128                             # same in every stage
 NUM_WORKERS = 4                              # background processes preparing batches (run scripts set it from the config)
 PIN_MEMORY = False                           # faster copies to a CUDA GPU; run scripts turn it on for CUDA
+AUGMENT = "basic"                            # training augmentation: "basic" (ResNet-18) or "randaugment" (ViT)
+RANDAUGMENT = (2, 9)                         # RandAugment (number of operations, magnitude), if used
 
 
-def configure(num_workers, pin_memory):
-    """Set loader options before making loaders (run scripts call this from the config and device)."""
-    global NUM_WORKERS, PIN_MEMORY
-    NUM_WORKERS, PIN_MEMORY = num_workers, pin_memory
+def configure(num_workers, pin_memory, augment="basic", randaugment=(2, 9)):
+    """Set loader options before making loaders (run scripts call this from the config and device).
+
+    augment:     "basic" = random crop + flip (no flip for SVHN)
+                 "randaugment" = the same, then RandAugment(*randaugment)
+    """
+    global NUM_WORKERS, PIN_MEMORY, AUGMENT, RANDAUGMENT
+    if augment not in ("basic", "randaugment"):
+        raise ValueError(f"unknown augment {augment!r}, use 'basic' or 'randaugment'")
+    NUM_WORKERS, PIN_MEMORY, AUGMENT, RANDAUGMENT = num_workers, pin_memory, augment, tuple(randaugment)
+
+
+def augment_from(cfg):
+    """A config's augmentation settings, as keywords for configure. No setting = "basic" (ResNet-18)."""
+    return {"augment": cfg.get("augment", "basic"),
+            "randaugment": (cfg.get("randaugment_ops", 2), cfg.get("randaugment_magnitude", 9))}
 
 
 # ---------------------------------------------------------------- splits
@@ -52,12 +66,16 @@ def make_transform(name, augment):
 
     name:    "cifar10", "cifar100" or "svhn"
     augment: True for training, False for evaluation and the probe
+             (which augmentation: AUGMENT, set by configure)
     """
     steps = []
     if augment:
         steps.append(T.RandomCrop(32, padding=4))
         if name != "svhn":
             steps.append(T.RandomHorizontalFlip())
+        if AUGMENT == "randaugment":
+            num_ops, magnitude = RANDAUGMENT
+            steps.append(T.RandAugment(num_ops=num_ops, magnitude=magnitude))   # on the image, before ToTensor
     steps.append(T.ToTensor())
     steps.append(T.Normalize(CIFAR10_MEAN, CIFAR10_STD))
     return T.Compose(steps)
@@ -190,5 +208,12 @@ if __name__ == "__main__":                   # run: python src/data.py
     images, labels = next(iter(train))                         # first batch
     print(images.shape, labels.shape, labels.min().item(), labels.max().item())  # expect (128, 3, 32, 32) (128,) 0 9
     print(len(train.dataset), len(test.dataset))               # expect 40000 10000
+    print(make_transform("svhn", augment=True))                # crop only (basic)
+
+    configure(NUM_WORKERS, PIN_MEMORY, augment="randaugment")  # the ViT's setting
+    print(make_transform("cifar10", augment=True))             # crop, flip, RandAugment
+    print(make_transform("cifar10", augment=False))            # evaluation: unchanged, no augmentation
+    images, _ = next(iter(stage2_data(1)[0]))                  # an augmented SVHN batch
+    print(images.shape)                                        # expect (128, 3, 32, 32)
 
 
