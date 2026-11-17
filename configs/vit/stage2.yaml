@@ -9,9 +9,14 @@ lr_choices: [1.0e-3, 3.0e-4, 1.0e-4]
 #   B: SVHN test ≥ 95%                            (B, from random weights, learns SVHN as well)
 # Length: the smallest whole number of SVHN epochs at which A's old head is ≤ 15%; then check that
 # B reaches SVHN ≥ 95% at that length (else try one more epoch at a time, for B, seed 1).
+# First calibration (2026-11-17, on the archived lr-1e-3 stage-1 models, no warmup): no lr passed.
+#   A SVHN / old head: 1e-4 → 86.8% / 25.4% · 3e-4 → 92.4% / 18.7% · 1e-3 → 93.5% / 16.3%
+#   B SVHN: 1e-4 → 94.3% · 3e-4 → 88.6% · 1e-3 → 31.7% (never learned: B starts from random weights)
+#   Redone after the stage-1 fix and with the warmup below.
 # Results: (to fill in)
 schedule: cosine          # from lr down to 0 over all steps
-warmup_steps: 0           # same as ResNet-18
+warmup_steps: 573         # 1 SVHN epoch. Unlike ResNet-18 (0): a ViT from random weights (arm B) can't
+                          # start at full lr (B at 1e-3 without warmup never learned). Same for every arm.
 
 steps: null               # set by the calibration; real runs refuse to start until then
 calibration_steps: 11460  # length of the calibration run: 20 SVHN epochs

@@ -1,11 +1,31 @@
 # ViT stage 1: A learns CIFAR-10, C learns CIFAR-100. Same settings for both.
 
-lr: 1.0e-3                # starting learning rate (AdamW). Starting value: check it on the baseline run
+calibrated: true          # lr chosen with --calibrate (results below); fixed 2026-11-17
+
+lr: 5.0e-4                # chosen by the calibration below (AdamW). Never change it now.
+lr_choices: [5.0e-4, 3.0e-4]
 schedule: cosine          # after warmup, lr goes smoothly down to 0 over all epochs
-warmup_epochs: 10         # ViTs need a warmup: the lr grows from ~0 to 1e-3 over the first 10 epochs
+warmup_epochs: 10         # ViTs need a warmup: the lr grows from ~0 to its peak over the first 10 epochs
 
-epochs: 1                 # placeholder: set the real number from the baseline run (A, seed 1).
-                          # After that, never change it: A and C, and every seed, train equally long.
+# First recipe (2026-11-16): lr 1e-3. Too high: stage 1 depended on the seed (A test 76.83% / 82.26% /
+# 74.98% for seeds 1–3; ResNet-18 ±0.1), with a long stall after warmup that only seed 2 escaped early.
+# Those runs are archived (checkpoints/vit/archive_lr1e-3/, logs/vit/archive_lr1e-3/), not used.
+#
+# Calibration rule (fixed 2026-11-17, BEFORE any of these runs):
+# For every lr in lr_choices, run A on seeds 1, 2 and 3 with --calibrate (full 200 epochs, CIFAR-10
+# validation). Score of a run = mean validation accuracy of its last 5 epochs.
+# An lr is STABLE if its three scores lie within 2 points (max − min ≤ 2).
+# Choose the stable lr with the highest mean score. If neither is stable, try 1e-4 the same way.
+# Then set lr, set calibrated: true, and run the real stage 1 (A and C, seeds 1–3).
+# Results (2026-11-17, A, validation, mean of the last 5 epochs, seeds 1 / 2 / 3):
+#   5e-4: 88.74 / 88.03 / 88.38 → mean 88.38, spread 0.72 → stable
+#   3e-4: 88.44 / 87.76 / 87.29 → mean 87.83, spread 1.15 → stable
+#   Both stable; 5e-4 has the higher mean → lr = 5e-4.
+#   Compared with lr 1e-3: no stall after warmup (val 61–62% at epoch 10 vs ~53%), ~11 points higher,
+#   and the seeds agree (0.7-point spread vs 7 points).
 
-eval_every_epochs: 1      # test accuracy and loss after every epoch
+epochs: 200               # fixed on 2026-11-16: the same as ResNet-18, so both backbones get the same
+                          # number of passes. After that, never change it: A and C, and every seed, train equally long.
+
+eval_every_epochs: 1      # accuracy and loss after every epoch (test; validation during calibration)
 resume_every_epochs: 10   # save a resume file this often, in case the run is interrupted

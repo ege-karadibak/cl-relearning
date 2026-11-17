@@ -1,7 +1,18 @@
 # ViT linear probe: logistic regression on the backbone's 384 features (the class token).
 # Trained on the never-seen 5k, scored on CIFAR-10 test. Same settings for every arm and stage.
 
-C: 0.1                    # placeholder: choose it with --choose-c on A, stage 1, seed 1 (validation),
-                          # the same way as for ResNet-18; then never change it.
-C_choices: [0.01, 0.1, 1.0, 10.0]   # values compared on validation by --choose-c
+C: 0.003                  # chosen 2026-11-16 on the FIRST stage-1 model (lr 1e-3, now archived).
+                          # Choose it again with --choose-c on the new A, stage 1, seed 1, same rule (below);
+                          # then never change it.
+C_choices: [0.001, 0.003, 0.01, 0.03, 0.1]   # values compared on validation by --choose-c
+
+# Rule (same as ResNet-18): the best validation accuracy, not at the edge of the range.
+# First try (2026-11-16, A, stage 1, seed 1, validation), the ResNet-18 range:
+#   0.01 → 75.34% · 0.1 → 73.98% · 1 → 71.60% · 10 → 68.66%
+#   Best at the edge (0.01, still rising), so the range was moved down to the values above,
+#   fixed BEFORE running them. If the best is at the edge again, extend the same way.
+# Second try (same model and data): 0.001 → 75.90% · 0.003 → 75.86% · 0.01 → 75.34% · 0.03 → 74.42% · 0.1 → 73.98%
+#   The best (0.001) is at the edge, but 0.003 ties it (0.04 points = 2 of 5,000 images) and is not at
+#   the edge: exactly the ResNet-18 case (0.01 → 94.40% at the edge, 0.1 → 94.36% tied → 0.1 chosen).
+#   The curve has flattened (+0.04 from 0.003 to 0.001), so nothing is left to gain lower down → C = 0.003.
 max_iter: 2000            # enough for the solver to finish on 5k × 384 features
