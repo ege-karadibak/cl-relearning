@@ -1,0 +1,14 @@
+{"seed": 2, "arm": "C", "stage": 2, "readout": "embed_patch", "dims": 384, "C": 0.001, "probe_acc": 0.2778, "probe_loss": 1.9938603639602661}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block1_cls", "dims": 384, "C": 1.0, "probe_acc": 0.4552, "probe_loss": 1.5850623846054077}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block1_patch", "dims": 384, "C": 1.0, "probe_acc": 0.5478, "probe_loss": 1.3247085809707642}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block2_cls", "dims": 384, "C": 0.1, "probe_acc": 0.5788, "probe_loss": 1.218030571937561}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block2_patch", "dims": 384, "C": 0.1, "probe_acc": 0.6246, "probe_loss": 1.07319974899292}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block3_cls", "dims": 384, "C": 0.01, "probe_acc": 0.5938, "probe_loss": 1.1565523147583008}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block3_patch", "dims": 384, "C": 0.1, "probe_acc": 0.6511, "probe_loss": 1.0050873756408691}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block4_cls", "dims": 384, "C": 0.01, "probe_acc": 0.607, "probe_loss": 1.1132221221923828}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block4_patch", "dims": 384, "C": 0.1, "probe_acc": 0.6519, "probe_loss": 1.0100458860397339}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block5_cls", "dims": 384, "C": 0.01, "probe_acc": 0.6056, "probe_loss": 1.126879096031189}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block5_patch", "dims": 384, "C": 0.01, "probe_acc": 0.6408, "probe_loss": 1.0324184894561768}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block6_cls", "dims": 384, "C": 0.001, "probe_acc": 0.5643, "probe_loss": 1.3439509868621826}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "block6_patch", "dims": 384, "C": 0.01, "probe_acc": 0.6413, "probe_loss": 1.041057825088501}
+{"seed": 2, "arm": "C", "stage": 2, "readout": "final", "dims": 384, "C": 0.001, "probe_acc": 0.56, "probe_loss": 1.3403252363204956, "logged_probe_acc": 0.56, "matches_log": true}

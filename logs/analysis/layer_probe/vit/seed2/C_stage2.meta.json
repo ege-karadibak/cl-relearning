@@ -1,0 +1,60 @@
+{
+  "run": "C_stage2",
+  "seed": 2,
+  "config": {
+    "arch": "vit",
+    "device": "cuda:0",
+    "C_final": 0.001,
+    "max_iter": 2000,
+    "C_choices": [
+      0.0001,
+      0.001,
+      0.01,
+      0.1,
+      1.0
+    ],
+    "C_layers": {
+      "embed_patch": null,
+      "block1_cls": null,
+      "block1_patch": null,
+      "block2_cls": null,
+      "block2_patch": null,
+      "block3_cls": null,
+      "block3_patch": null,
+      "block4_cls": null,
+      "block4_patch": null,
+      "block5_cls": null,
+      "block5_patch": null,
+      "block6_cls": null,
+      "block6_patch": null
+    },
+    "checkpoint": "checkpoints/vit/seed2/C_stage2.pt",
+    "C_used": {
+      "embed_patch": 0.001,
+      "block1_cls": 1.0,
+      "block1_patch": 1.0,
+      "block2_cls": 0.1,
+      "block2_patch": 0.1,
+      "block3_cls": 0.01,
+      "block3_patch": 0.1,
+      "block4_cls": 0.01,
+      "block4_patch": 0.1,
+      "block5_cls": 0.01,
+      "block5_patch": 0.01,
+      "block6_cls": 0.001,
+      "block6_patch": 0.01,
+      "final": 0.001
+    },
+    "logged_final_probe": 0.56
+  },
+  "provenance": {
+    "splits_sha256": "f3308e9a4aafd2c0",
+    "device_type": "cuda",
+    "device_name": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "cuda": "13.2",
+    "torch": "2.15.0+cu132",
+    "torchvision": "0.29.2+cu132",
+    "python": "3.11.18",
+    "date": "2026-11-18T03:04:04"
+  }
+}

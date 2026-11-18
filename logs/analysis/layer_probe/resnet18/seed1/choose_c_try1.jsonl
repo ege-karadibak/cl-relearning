@@ -1,0 +1,5 @@
+{"readout": "stem", "dims": 256, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0], "val_acc": [0.3538, 0.3928, 0.4304, 0.4544, 0.4574, 0.4566], "best_C": 1.0, "best_at_edge": false}
+{"readout": "layer1", "dims": 256, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.5144, 0.5816, 0.6216, 0.6286, 0.6164], "best_C": 0.1, "best_at_edge": false}
+{"readout": "layer2", "dims": 512, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.686, 0.7588, 0.7936, 0.782, 0.7522], "best_C": 0.01, "best_at_edge": false}
+{"readout": "layer3", "dims": 1024, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.8992, 0.9172, 0.9174, 0.9134, 0.9128], "best_C": 0.01, "best_at_edge": false}
+{"readout": "layer4", "dims": 2048, "C_tried": [1e-06, 1e-05, 0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.9454, 0.9462, 0.9448, 0.9438, 0.9426, 0.94, 0.9336], "best_C": 1e-05, "best_at_edge": false}

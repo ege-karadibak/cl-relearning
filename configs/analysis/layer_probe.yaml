@@ -1,0 +1,48 @@
+# Per-layer linear probes and CKA (analysis only: src/layer_probe.py). Q3: where is the "lost" knowledge kept?
+# Read after configs/base.yaml (device, workers). Same probe as configs/probe.yaml (logistic regression on the
+# never-seen 5k, scored on CIFAR-10 test), applied to features read out of every layer.
+
+# How a layer becomes a feature vector (fixed 2026-11-18, before any result):
+#   ResNet-18: each stage's output (stem, layer1-4) average-pooled to 2×2 per channel → 4 × channels numbers
+#              (256 / 256 / 512 / 1,024 / 2,048); "final" = the backbone's 512 features (the existing probe).
+#   ViT: the patch embedding (+ position) and the output of each of the 6 blocks, read two ways:
+#        "cls" = the class token, "patch" = the mean of the 64 patch tokens (384 numbers each; no "cls" for the
+#        embedding, where the class token is the same for every image); "final" = the class token after the
+#        final LayerNorm (the existing probe).
+
+# Probe strength C per readout. "final" always uses configs/probe.yaml / configs/vit/probe.yaml (0.1 / 0.001),
+# so it must reproduce the logged probe values exactly. Every other readout: chosen once with --choose-c on
+# A, stage 1, seed 1, scored on validation, rule as before: the best value not at the edge of C_choices;
+# if the best is at the edge, add the next value beyond it (×10 or ÷10) and look again, at most 3 times
+# (applied by the script, so the whole run can be queued; the choice is saved in
+# logs/analysis/layer_probe/{arch}/chosen_c.json and copied here afterwards). Then fixed for every arm, seed and stage.
+C_choices: [0.0001, 0.001, 0.01, 0.1, 1.0]
+max_iter: 2000
+
+C:
+  # chosen 2026-11-18 by --choose-c on the lab GPU (A, stage 1, seed 1, validation), by the rule above.
+  # Validation accuracy per C: logs/analysis/layer_probe/{arch}/seed1/choose_c_try1.jsonl. Never change them now.
+  resnet18:
+    stem: 1.0               # best at the edge (1) → tried 10 → 1 kept
+    layer1: 0.1
+    layer2: 0.01
+    layer3: 0.01
+    layer4: 1.0e-5          # best at the edge twice (1e-4 → 1e-5 → tried 1e-6) → 1e-5 kept
+  vit:
+    embed_patch: 0.001
+    block1_cls: 1.0         # best at the edge (1) → tried 10 → 1 kept
+    block1_patch: 1.0       # same
+    block2_cls: 0.1
+    block2_patch: 0.1
+    block3_cls: 0.01
+    block3_patch: 0.1
+    block4_cls: 0.01
+    block4_patch: 0.1
+    block5_cls: 0.01
+    block5_patch: 0.01
+    block6_cls: 0.001
+    block6_patch: 0.01
+
+# CKA (linear, on the never-seen 5k features of each readout), per seed:
+#   same arm, stage 1 (B: stage 0) vs stage 2  → how much each layer changed in the overwrite
+#   A vs C at stage 1 and at stage 2           → how similar the two pretrained networks are, per layer

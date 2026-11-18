@@ -1,0 +1,20 @@
+{
+  "arch": "vit",
+  "rule": "best not at the edge, extended up to 3 times",
+  "chosen_on": "A, stage 1, seed 1, validation",
+  "C": {
+    "embed_patch": 0.001,
+    "block1_cls": 1.0,
+    "block1_patch": 1.0,
+    "block2_cls": 0.1,
+    "block2_patch": 0.1,
+    "block3_cls": 0.01,
+    "block3_patch": 0.1,
+    "block4_cls": 0.01,
+    "block4_patch": 0.1,
+    "block5_cls": 0.01,
+    "block5_patch": 0.01,
+    "block6_cls": 0.001,
+    "block6_patch": 0.01
+  }
+}

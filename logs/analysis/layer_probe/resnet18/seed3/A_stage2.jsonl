@@ -1,0 +1,6 @@
+{"seed": 3, "arm": "A", "stage": 2, "readout": "stem", "dims": 256, "C": 1.0, "probe_acc": 0.4662, "probe_loss": 1.5201427936553955}
+{"seed": 3, "arm": "A", "stage": 2, "readout": "layer1", "dims": 256, "C": 0.1, "probe_acc": 0.609, "probe_loss": 1.1393073797225952}
+{"seed": 3, "arm": "A", "stage": 2, "readout": "layer2", "dims": 512, "C": 0.01, "probe_acc": 0.6575, "probe_loss": 1.011621356010437}
+{"seed": 3, "arm": "A", "stage": 2, "readout": "layer3", "dims": 1024, "C": 0.01, "probe_acc": 0.6527, "probe_loss": 1.0312609672546387}
+{"seed": 3, "arm": "A", "stage": 2, "readout": "layer4", "dims": 2048, "C": 1e-05, "probe_acc": 0.2801, "probe_loss": 2.1058189868927}
+{"seed": 3, "arm": "A", "stage": 2, "readout": "final", "dims": 512, "C": 0.1, "probe_acc": 0.5058, "probe_loss": 1.4316157102584839, "logged_probe_acc": 0.5058, "matches_log": true}

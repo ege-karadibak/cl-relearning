@@ -8,6 +8,7 @@ checkpoints/
 logs/smoke/
 logs/vit/smoke/
 logs/analysis/bn_check_smoke/
+logs/analysis/layer_probe_smoke/
 wandb/
 
 # Python / Jupyter

@@ -1,0 +1,13 @@
+{"readout": "embed_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.271, 0.2804, 0.2766, 0.2746, 0.2704], "best_C": 0.001, "best_at_edge": false}
+{"readout": "block1_cls", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0], "val_acc": [0.3184, 0.3598, 0.3898, 0.4174, 0.427, 0.4222], "best_C": 1.0, "best_at_edge": false}
+{"readout": "block1_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0], "val_acc": [0.4456, 0.4956, 0.529, 0.5438, 0.5478, 0.5408], "best_C": 1.0, "best_at_edge": false}
+{"readout": "block2_cls", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.4878, 0.5434, 0.5802, 0.5832, 0.5786], "best_C": 0.1, "best_at_edge": false}
+{"readout": "block2_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.5176, 0.5866, 0.6244, 0.6444, 0.6334], "best_C": 0.1, "best_at_edge": false}
+{"readout": "block3_cls", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.5836, 0.631, 0.6594, 0.655, 0.6354], "best_C": 0.01, "best_at_edge": false}
+{"readout": "block3_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.5822, 0.6442, 0.6908, 0.6982, 0.6904], "best_C": 0.1, "best_at_edge": false}
+{"readout": "block4_cls", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.6928, 0.726, 0.7332, 0.7288, 0.6982], "best_C": 0.01, "best_at_edge": false}
+{"readout": "block4_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.6282, 0.7014, 0.743, 0.747, 0.7238], "best_C": 0.1, "best_at_edge": false}
+{"readout": "block5_cls", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.8248, 0.8318, 0.8328, 0.8172, 0.7946], "best_C": 0.01, "best_at_edge": false}
+{"readout": "block5_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.7466, 0.7758, 0.8018, 0.7948, 0.7718], "best_C": 0.01, "best_at_edge": false}
+{"readout": "block6_cls", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.8872, 0.8874, 0.884, 0.8728, 0.853], "best_C": 0.001, "best_at_edge": false}
+{"readout": "block6_patch", "dims": 384, "C_tried": [0.0001, 0.001, 0.01, 0.1, 1.0], "val_acc": [0.8256, 0.8436, 0.8474, 0.8414, 0.8268], "best_C": 0.01, "best_at_edge": false}

@@ -1,0 +1,12 @@
+{
+  "arch": "resnet18",
+  "rule": "best not at the edge, extended up to 3 times",
+  "chosen_on": "A, stage 1, seed 1, validation",
+  "C": {
+    "stem": 1.0,
+    "layer1": 0.1,
+    "layer2": 0.01,
+    "layer3": 0.01,
+    "layer4": 1e-05
+  }
+}
