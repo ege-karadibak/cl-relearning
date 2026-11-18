@@ -1,0 +1,2 @@
+{"seed": 3, "arm": "A", "stage": 1, "variant": "as_saved", "bn_layers_recomputed": 0, "old_acc": 0.9474, "old_loss": 0.1942121940612793, "probe_acc": 0.9466, "probe_loss": 0.17863278090953827, "logged_old_acc": 0.9474, "matches_log": true}
+{"seed": 3, "arm": "A", "stage": 1, "variant": "own", "bn_layers_recomputed": 20, "old_acc": 0.9327, "old_loss": 0.24648224787712097, "probe_acc": 0.9332, "probe_loss": 0.22520849108695984}

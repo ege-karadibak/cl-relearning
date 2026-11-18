@@ -107,7 +107,7 @@ td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
   <div class="step">Step 6 · Blocks</div>
   <h2>Repeat: attention, then a small network for each token</h2>
   <p>One <b>transformer block</b> is: attention (step 5), then a small two-layer network applied to each token on its own. Each part is wrapped with <b>LayerNorm</b>, which rescales each token's numbers, and a skip connection that adds the input back. The experiment's ViT stacks <b>6 blocks</b>, and each block runs <b>6 attention patterns</b> side by side (6 "heads"), each free to look for something different.</p>
-  <div class="note"><b>Why LayerNorm matters for the experiment:</b> a ResNet uses <b>BatchNorm</b>, which keeps running averages of all the training data it has seen. When it trains on house numbers (SVHN), those averages move to SVHN. LayerNorm keeps no such averages: it only uses the current image. This may be why the ViT's old CIFAR-10 head looked less forgotten after SVHN than ResNet-18's (29% vs 19%).</div>
+  <div class="note"><b>LayerNorm vs BatchNorm in the experiment:</b> a ResNet uses <b>BatchNorm</b>, which keeps running averages of all the training data it has seen; when it trains on house numbers (SVHN), those averages move to SVHN. LayerNorm keeps no such averages: it only uses the current image. That looked like a reason why the ViT's old CIFAR-10 head seemed less forgotten than ResNet-18's (29% vs 19%), so we tested it: putting CIFAR-10 averages back into ResNet-18 did <b>not</b> bring its old head back (16% instead of 19%). The difference comes from somewhere else, most likely from how strongly each network was overwritten.</div>
 </section>
 <section>
   <div class="step">Step 7 · The head decides</div>

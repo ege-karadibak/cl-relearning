@@ -264,7 +264,7 @@ main { max-width: none; }
 <section class="slide" id="why">
   <h2>Why they might differ</h2>
   <div class="cards three">
-    <div class="card"><h4>Old head: BatchNorm?</h4><p>ResNet-18's BatchNorm keeps running averages of the data it sees; SVHN replaces them, which can break the old head even where the filters still work. The ViT's LayerNorm keeps none. <b>Test:</b> re-estimate ResNet-18's BatchNorm statistics on CIFAR-10 after stage 2 and score the old head again.</p></div>
+    <div class="card"><h4>Old head: not BatchNorm</h4><p>Idea: SVHN replaced ResNet-18's BatchNorm averages, which the ViT's LayerNorm doesn't keep. <b>Tested and ruled out:</b> recomputing ResNet-18's BatchNorm statistics on CIFAR-10 leaves A's old head at 16.3% (18.8% as saved). Better candidate: overwrite strength. The ViT's old head reaches 20% at its strongest stage-2 rate, ResNet-18's level.</p></div>
     <div class="card"><h4>General knowledge</h4><p>The ViT keeps more general features through SVHN, but they help less when relearning from 5k photos. Where in the network this happens is open: probing each block (Q3) would show it.</p></div>
     <div class="card"><h4>Memory of photos</h4><p>The ViT shows a small, consistent advantage on the exact photos it trained on (~1.8 points); ResNet-18 does not. Small effect, 3 seeds: a direct per-image test after stage 2 would confirm it.</p></div>
   </div>

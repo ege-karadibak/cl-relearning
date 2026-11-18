@@ -1,0 +1,37 @@
+{
+  "run": "A_stage1_bn",
+  "seed": 1,
+  "config": {
+    "device": "cuda:1",
+    "gpu_memory_fraction": 0.33,
+    "optimizer": "sgd",
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "batch_size": 128,
+    "num_workers": 8,
+    "C": 0.1,
+    "C_choices": [
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ],
+    "max_iter": 2000,
+    "checkpoint": "checkpoints/seed1/A_stage1.pt",
+    "variants": [
+      "as_saved",
+      "own"
+    ],
+    "logged_old_acc": 0.9498
+  },
+  "provenance": {
+    "splits_sha256": "f3308e9a4aafd2c0",
+    "device_type": "cuda",
+    "device_name": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "cuda": "13.2",
+    "torch": "2.15.0+cu132",
+    "torchvision": "0.29.2+cu132",
+    "python": "3.11.18",
+    "date": "2026-11-17T21:12:00"
+  }
+}

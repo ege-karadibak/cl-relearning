@@ -360,7 +360,7 @@ main { max-width: none; }
 <section class="slide" id="next">
   <h2>Next</h2>
   <div class="cards three">
-    <div class="card"><h4>1 · BatchNorm check</h4><p>Re-estimate ResNet-18's BatchNorm statistics on CIFAR-10 after stage 2. Does its old head come back? That would explain why the ViT's stays higher.</p></div>
+    <div class="card"><h4>1 · Matched overwrite</h4><p>BatchNorm is ruled out: recomputing ResNet-18's statistics on CIFAR-10 leaves its old head at 16% (19% as saved). Next: compare the networks at the same amount of forgetting.</p></div>
     <div class="card"><h4>2 · Where is it kept?</h4><p>Probe every transformer block (and every ResNet stage). Which layers carry A's advantage?</p></div>
     <div class="card"><h4>3 · Other datasets</h4><p>Change the overwrite dataset, from close to far from CIFAR-10, and measure how similar each one is.</p></div>
   </div>

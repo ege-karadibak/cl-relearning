@@ -381,7 +381,7 @@ footer { margin-top: 56px; font-size: 13px; color: var(--muted); }
 <tr><td>Features</td><td>512 (global average pool)</td><td>384 (class token)</td></tr>
 <tr><td>Parameters (backbone)</td><td>11,168,832</td><td>10,691,712</td></tr>
 </tbody></table></div>
-<p>The last two rows of the first table matter for this experiment: BatchNorm's running statistics get overwritten when a network trains on new data (here SVHN), even if the filters change little. A ViT has no such statistics. Section 11 comes back to this.</p>
+<p>The normalization row looked important for this experiment: BatchNorm's running statistics get overwritten when a network trains on new data (here SVHN), even if the filters change little, and a ViT has no such statistics. We tested whether this explains the difference in old-head forgetting; it does not (section 11).</p>
 <h3>What a head is, and why a fresh one in stage 3</h3>
 <p>A head is a linear layer: scores = <i>W</i>·<i>x</i> + <i>b</i>, with <i>W</i> of shape 10×384 for a 10-class head. It has learned what each of the 384 slots means <i>in that backbone</i>. When stage 2 changes the backbone, the slot meanings shift and the old head reads the wrong evidence, so the old head can fail even when the information is still present. In stage 3, every arm gets an identical, freshly seeded head, so the backbone is the only thing that differs.</p>
 
@@ -707,7 +707,16 @@ footer { margin-top: 56px; font-size: 13px; color: var(--muted); }
 <tr><td>A − C: head start + extra gain</td><td class="r">3.0 + 4.2</td><td class="r">2.3 + 5.5</td></tr>
 <tr><td>Memory effect (vs C)</td><td class="r">0.9 ± 2.4 (sign varies)</td><td class="r">1.8 ± 0.1 (every seed)</td></tr>
 </tbody></table></div>
-<p><b>Why the old heads differ.</b> ResNet-18's old head reached 19% after only 4 SVHN epochs; the ViT's stays near 29% even after 20. A likely reason: ResNet-18's <b>BatchNorm</b> layers keep running averages of the data they see, and SVHN replaces those averages, which breaks the old head even where the filters are still useful. The ViT's <b>LayerNorm</b> keeps no such averages. This can be tested directly by re-estimating ResNet-18's BatchNorm statistics on CIFAR-10 after stage 2 and scoring its old head again (section 13). It matters for comparing old-head numbers between the two backbones, and for the question of how much "forgetting" is only a read-out mismatch.</p>
+<p><b>Why the old heads differ: not BatchNorm.</b> ResNet-18's old head reached 19% after only 4 SVHN epochs; the ViT's stays near 29% even after 20. One idea was that ResNet-18's <b>BatchNorm</b> layers, which keep running averages of the data they see, simply had their averages replaced by SVHN's, while the ViT's <b>LayerNorm</b> keeps none. We tested it (<code>src/bn_check.py</code>, 18 Nov): recomputing only ResNet-18's BatchNorm statistics from CIFAR-10 images, with no weight changes, does <b>not</b> bring the old head back.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>ResNet-18, A after stage 2 (seeds 1–3)</th><th class="r">Old CIFAR-10 head</th><th class="r">SVHN head</th><th class="r">CIFAR-10 probe</th></tr></thead>
+<tbody>
+<tr><td>BatchNorm statistics as saved</td><td class="r"><b>18.8%</b></td><td class="r">96.7%</td><td class="r">49.4%</td></tr>
+<tr><td>Recomputed on A's own CIFAR-10 images</td><td class="r"><b>16.3%</b></td><td class="r">90.8%</td><td class="r">37.3%</td></tr>
+<tr><td>Recomputed on never-seen CIFAR-10 images</td><td class="r">16.3%</td><td class="r">90.8%</td><td class="r">37.3%</td></tr>
+<tr><td>Recomputed on SVHN (control)</td><td class="r">14.8%</td><td class="r">86.8%</td><td class="r">42.4%</td></tr>
+</tbody></table></div>
+<p>The old head even drops slightly, in every seed. The recompute has a small cost of its own (on a never-overwritten stage-1 model it costs 1.7 points, probably because the saved statistics came from augmented training images), but compared like for like, CIFAR statistics beat SVHN statistics by only 1.5 points. ResNet-18's forgetting is in the weights, not in its normalization statistics. A better candidate is <b>how strongly each network was overwritten</b>: in the ViT's calibration its old head ended at 37%, 31% and 20% for stage-2 rates of 1×10⁻⁴, 3×10⁻⁴ and 1×10⁻³; at the strongest rate it matches ResNet-18 (19%). The ViT ran at 3×10⁻⁴ because B needed it to learn SVHN. This is a hypothesis from seed-1 calibration runs, not yet tested.</p>
 
 <!-- ============================================================ 12 -->
 <h2 id="limits"><span class="n">12</span>Limitations</h2>
@@ -715,7 +724,7 @@ footer { margin-top: 56px; font-size: 13px; color: var(--muted); }
 <thead><tr><th>Limitation</th><th>Why it matters</th><th>How to address it</th></tr></thead>
 <tbody>
 <tr><td><b>Rules adapted to the ViT</b></td><td class="why">The old-head rule (≤ 15%) became "lowest old head among rates that pass", after one rate; stage 2 used a known passing length (20) instead of the smallest; the stage-3 budget doubled. All decisions came before any relearning result, but they are choices.</td><td>Reported with their timing (section 7); a stage-2 length sweep would show sensitivity.</td></tr>
-<tr><td><b>Old head not near chance</b></td><td class="why">A's old head is 29%, its probe 58.5% (B 43.8%). "Forgotten" means "looks largely forgotten by the old head".</td><td>BatchNorm check on ResNet-18; longer or harsher overwriting.</td></tr>
+<tr><td><b>Old head not near chance</b></td><td class="why">A's old head is 29%, its probe 58.5% (B 43.8%). "Forgotten" means "looks largely forgotten by the old head".</td><td>Compare the networks at matched overwrite strength (section 13).</td></tr>
 <tr><td><b>Different recipe from ResNet-18</b></td><td class="why">Optimizer, augmentation, warmups and lengths differ, so raw accuracies of the two backbones are not comparable.</td><td>Compare gaps between arms and their relative size, as in section 11.</td></tr>
 <tr><td><b>Only one amount of overwriting</b></td><td class="why">The effect may change with more or less SVHN training.</td><td>Sweep the stage-2 length, reusing the stage-1 checkpoints.</td></tr>
 <tr><td><b>Forgetting set by B, not matched per arm</b></td><td class="why">By the old head, C kept less of its stage-1 accuracy (61.4% → 13.8%) than A (88.3% → 29.2%). The length was set by B's SVHN accuracy, not by matching the arms' forgetting.</td><td>Match arms on the starting probe.</td></tr>
@@ -728,7 +737,7 @@ footer { margin-top: 56px; font-size: 13px; color: var(--muted); }
 <!-- ============================================================ 13 -->
 <h2 id="next"><span class="n">13</span>Open questions and next experiments</h2>
 <ol>
-<li><b>The BatchNorm check:</b> re-estimate ResNet-18's BatchNorm statistics on CIFAR-10 at A's stage-2 checkpoint and score the old head. If it jumps back, a large part of ResNet-18's "forgetting" is a statistics mismatch, which would explain the difference to the ViT. Minutes of compute, no training.</li>
+<li><b>Matched overwrite strength:</b> the BatchNorm explanation was tested and ruled out (section 11). Next, compare the two networks at the same amount of old-head forgetting (for example A's ViT stage 2 at 1×10⁻³), and check whether the other differences (general knowledge, memory of photos) remain.</li>
 <li><b>Where is the knowledge kept?</b> Probe every transformer block (and every ResNet stage) at the stage-2 checkpoints, for A, B and C.</li>
 <li><b>How much overwriting erases it?</b> Sweep the stage-2 length and plot the A − C relearning gap.</li>
 <li><b>Does the dataset matter?</b> Change the overwrite dataset, from close to far from CIFAR-10, and measure how similar each one is (gradient and representation overlap).</li>
