@@ -11,5 +11,12 @@ grad_clip: 1.0            # clip the gradient norm: a ViT from scratch can have 
 
 augment: randaugment      # crop + flip (no flip for SVHN), then RandAugment, on every training set
 randaugment_ops: 2        # how many random image operations per image
-randaugment_magnitude: 9  # how strong they are (0-30). If SVHN can't reach 95% in calibration,
-                          # lower it for every stage and say why.
+randaugment_magnitude: 9  # how strong they are (0-30)
+
+# SVHN-only fallback (fixed 2026-11-17, BEFORE the stage-2 calibration, after stage 1 was trained at 9).
+# If no lr in the stage-2 calibration passes the SVHN ≥ 95% rule, lower RandAugment for SVHN only:
+# redo the whole stage-2 calibration (A and B, every lr) with randaugment_magnitude_svhn: 5, and if still
+# none passes, with 1. Stop at the first level where an lr passes; then that value is fixed for every arm
+# and seed. CIFAR training (stages 1 and 3) keeps magnitude 9, so stage 1 stays valid.
+# Why SVHN only: like the flip, which SVHN already skips, some distortions suit photos more than digits.
+randaugment_magnitude_svhn: null   # null = the same as randaugment_magnitude (9)

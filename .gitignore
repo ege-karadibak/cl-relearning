@@ -19,3 +19,6 @@ __pycache__/
 # Our own notes stay local: only the README is published
 *.md
 !README.md
+
+# Resume files: only for continuing an interrupted run on the server
+*.resume.pt

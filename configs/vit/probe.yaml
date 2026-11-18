@@ -1,10 +1,9 @@
 # ViT linear probe: logistic regression on the backbone's 384 features (the class token).
 # Trained on the never-seen 5k, scored on CIFAR-10 test. Same settings for every arm and stage.
 
-C: 0.003                  # chosen 2026-11-16 on the FIRST stage-1 model (lr 1e-3, now archived).
-                          # Choose it again with --choose-c on the new A, stage 1, seed 1, same rule (below);
-                          # then never change it.
-C_choices: [0.001, 0.003, 0.01, 0.03, 0.1]   # values compared on validation by --choose-c
+C: 0.001                  # chosen 2026-11-17 with --choose-c on A, stage 1, seed 1 (lr-5e-4 model), rule below.
+                          # Never change it now: every probe of every arm, stage and seed uses it.
+C_choices: [0.0001, 0.0003, 0.001, 0.003, 0.01]   # values compared on validation by --choose-c
 
 # Rule (same as ResNet-18): the best validation accuracy, not at the edge of the range.
 # First try (2026-11-16, A, stage 1, seed 1, validation), the ResNet-18 range:
@@ -15,4 +14,12 @@ C_choices: [0.001, 0.003, 0.01, 0.03, 0.1]   # values compared on validation by 
 #   The best (0.001) is at the edge, but 0.003 ties it (0.04 points = 2 of 5,000 images) and is not at
 #   the edge: exactly the ResNet-18 case (0.01 → 94.40% at the edge, 0.1 → 94.36% tied → 0.1 chosen).
 #   The curve has flattened (+0.04 from 0.003 to 0.001), so nothing is left to gain lower down → C = 0.003.
+# Those two tries used the archived lr-1e-3 model. On the new stage-1 model (lr 5e-4, A, stage 1, seed 1):
+# Third try (2026-11-17), range [0.001 … 0.1]:
+#   0.001 → 88.90% · 0.003 → 88.60% · 0.01 → 88.24% · 0.03 → 88.02% · 0.1 → 87.06%
+#   Best at the edge (0.001) and NOT a tie (0.30 points = 15 of 5,000 images; still rising), so the range was
+#   moved down to [0.0001 … 0.01], fixed BEFORE running it. Same rule after that.
+# Fourth try (2026-11-17, same model and data):
+#   0.0001 → 88.80% · 0.0003 → 88.88% · 0.001 → 88.90% · 0.003 → 88.60% · 0.01 → 88.24%
+#   Best = 0.001, now in the middle of the range (a clear peak, flat below it) → C = 0.001.
 max_iter: 2000            # enough for the solver to finish on 5k × 384 features

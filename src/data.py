@@ -30,24 +30,30 @@ NUM_WORKERS = 4                              # background processes preparing ba
 PIN_MEMORY = False                           # faster copies to a CUDA GPU; run scripts turn it on for CUDA
 AUGMENT = "basic"                            # training augmentation: "basic" (ResNet-18) or "randaugment" (ViT)
 RANDAUGMENT = (2, 9)                         # RandAugment (number of operations, magnitude), if used
+SVHN_MAGNITUDE = None                        # RandAugment magnitude for SVHN only (None = the same as the others)
 
 
-def configure(num_workers, pin_memory, augment="basic", randaugment=(2, 9)):
+def configure(num_workers, pin_memory, augment="basic", randaugment=(2, 9), svhn_magnitude=None):
     """Set loader options before making loaders (run scripts call this from the config and device).
 
-    augment:     "basic" = random crop + flip (no flip for SVHN)
-                 "randaugment" = the same, then RandAugment(*randaugment)
+    augment:        "basic" = random crop + flip (no flip for SVHN)
+                    "randaugment" = the same, then RandAugment(*randaugment)
+    svhn_magnitude: a weaker RandAugment magnitude for SVHN only (None = the same as the others)
     """
-    global NUM_WORKERS, PIN_MEMORY, AUGMENT, RANDAUGMENT
+    global NUM_WORKERS, PIN_MEMORY, AUGMENT, RANDAUGMENT, SVHN_MAGNITUDE
     if augment not in ("basic", "randaugment"):
         raise ValueError(f"unknown augment {augment!r}, use 'basic' or 'randaugment'")
+    if svhn_magnitude is not None and not (isinstance(svhn_magnitude, int) and 0 <= svhn_magnitude <= 30):
+        raise ValueError(f"svhn_magnitude must be a whole number from 0 to 30 or None, not {svhn_magnitude!r}")
     NUM_WORKERS, PIN_MEMORY, AUGMENT, RANDAUGMENT = num_workers, pin_memory, augment, tuple(randaugment)
+    SVHN_MAGNITUDE = svhn_magnitude
 
 
 def augment_from(cfg):
     """A config's augmentation settings, as keywords for configure. No setting = "basic" (ResNet-18)."""
     return {"augment": cfg.get("augment", "basic"),
-            "randaugment": (cfg.get("randaugment_ops", 2), cfg.get("randaugment_magnitude", 9))}
+            "randaugment": (cfg.get("randaugment_ops", 2), cfg.get("randaugment_magnitude", 9)),
+            "svhn_magnitude": cfg.get("randaugment_magnitude_svhn")}   # no setting = same as the others
 
 
 # ---------------------------------------------------------------- splits
@@ -75,6 +81,8 @@ def make_transform(name, augment):
             steps.append(T.RandomHorizontalFlip())
         if AUGMENT == "randaugment":
             num_ops, magnitude = RANDAUGMENT
+            if name == "svhn" and SVHN_MAGNITUDE is not None:
+                magnitude = SVHN_MAGNITUDE           # the SVHN-only fallback (configs/vit/base.yaml)
             steps.append(T.RandAugment(num_ops=num_ops, magnitude=magnitude))   # on the image, before ToTensor
     steps.append(T.ToTensor())
     steps.append(T.Normalize(CIFAR10_MEAN, CIFAR10_STD))

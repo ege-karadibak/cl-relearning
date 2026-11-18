@@ -1,24 +1,51 @@
 # ViT stage 2: every arm trains on SVHN with a new "svhn" head. Same settings for every arm.
 
-lr: 3.0e-4                # placeholder (AdamW): set by the calibration below
+lr: 3.0e-4                # chosen by the calibration below (2026-11-17). Never change it now.
 lr_choices: [1.0e-3, 3.0e-4, 1.0e-4]
 
-# Calibration rule: the same as for ResNet-18 (configs/stage2.yaml).
-# Use the GENTLEST lr in lr_choices where, at the end of the 20-epoch calibration (seed 1, validation):
-#   A: SVHN test ≥ 95% and A's old head ≤ 15%     (A is really overwritten and looks forgotten)
-#   B: SVHN test ≥ 95%                            (B, from random weights, learns SVHN as well)
-# Length: the smallest whole number of SVHN epochs at which A's old head is ≤ 15%; then check that
-# B reaches SVHN ≥ 95% at that length (else try one more epoch at a time, for B, seed 1).
+# Calibration rule (seed 1, validation, 20-epoch calibration runs; started as the ResNet-18 rule in configs/stage2.yaml):
+#   ResNet-18 rule: the GENTLEST lr where A: SVHN ≥ 95% and old head ≤ 15%, and B: SVHN ≥ 95%.
 # First calibration (2026-11-17, on the archived lr-1e-3 stage-1 models, no warmup): no lr passed.
 #   A SVHN / old head: 1e-4 → 86.8% / 25.4% · 3e-4 → 92.4% / 18.7% · 1e-3 → 93.5% / 16.3%
 #   B SVHN: 1e-4 → 94.3% · 3e-4 → 88.6% · 1e-3 → 31.7% (never learned: B starts from random weights)
 #   Redone after the stage-1 fix and with the warmup below.
-# Results: (to fill in)
+#
+# Rule changed for the ViT (2026-11-17), after ONLY the lr-1e-3 run of the new calibration, BEFORE the 3e-4
+# and 1e-4 results. Why: at 1e-3 (the strongest lr) A's old head fell from 88.8% to ~20% by SVHN epoch 3.5 and
+# then stayed flat for 16 epochs (lowest 18.6%): the ViT's old head levels off above 15%, not because training
+# is too short. Gentler lrs forget less, so no lr could pass "≤ 15%". (Likely reason: ResNet-18's BatchNorm
+# statistics are overwritten by SVHN; the ViT's LayerNorm keeps no statistics. To examine in the analysis.)
+# The aim stays the same, "A clearly looks forgotten", without a cutoff this backbone cannot reach:
+#   1. lr: among the lrs where A and B both reach SVHN ≥ 95% at the end of the 20 epochs, the one where A's
+#      old head ends LOWEST. If two are within 2 points, the gentler one.
+#   2. Length: the smallest whole number of SVHN epochs at which A's old head is within 2 points of its
+#      lowest value in that run (it has stopped dropping). Then check that B reaches SVHN ≥ 95% at that
+#      length (--steps trial, B, seed 1), else one more epoch at a time.
+#   3. If B reaches 95% at no lr: the SVHN-only fallback in configs/vit/base.yaml (magnitude 5, then 1).
+#   4. Report the old-head level reached openly (a backbone difference; ResNet-18's real runs: 18.8% on test).
+# Results:
+#   1e-3: A SVHN 97.0%, old head 21.2% (lowest 18.6%, flat from epoch 3.5), probe 50.1%.
+#         B stuck: train loss ~1.8–1.9, SVHN ~48% at epoch 11 → fails; 1e-3 is out.
+#   3e-4: A SVHN 96.2%, old head 31.4% (lowest 31.1%), probe 58.7% · B SVHN 95.7% → passes
+#   1e-4: A SVHN 95.4%, old head 37.1%, probe 62.9% · B SVHN 94.4% → fails (B < 95%)
+#   1e-3: B 54.7% at the end → fails
+#   Only 3e-4 passes → lr = 3e-4. (SVHN-only fallback not needed: B reaches 95% at 3e-4.)
+#   Length (3e-4 run): lowest old head 31.14% → within 2 points = ≤ 33.14%. First measurement there: step 5000
+#   (epoch 8.73, 31.44%); afterwards it stays between 31% and 34%. → 9 SVHN epochs = 5,157 steps.
+#   Old head after the overwrite ≈ 31–33% (88.8% before): the ViT keeps its old head much more than ResNet-18.
+#   B trials (--steps, full schedule for that length; take the SMALLEST length where B reaches 95%):
+#     9 epochs (5,157 steps) → 92.19% → fails.
+#   Decision (2026-11-17): no search over 10–19 epochs. steps = 20 epochs = 11,460 steps, the calibration run
+#   itself, already measured to pass for both arms (B 95.68%, A 96.24%). A deviation from "the smallest length",
+#   made after the 9-epoch trial and before any stage-3 result: A's old head (31–34%) and probe (~58–59%,
+#   B ~45%) are flat from epoch 9 to 20, so the longer overwrite changes A little and, if anything, makes an
+#   A advantage harder to show. Saves the ~35-min search. Unlike ResNet-18 (minimal length, 4 epochs),
+#   here B (learning SVHN from random weights) sets the length.
 schedule: cosine          # from lr down to 0 over all steps
 warmup_steps: 573         # 1 SVHN epoch. Unlike ResNet-18 (0): a ViT from random weights (arm B) can't
                           # start at full lr (B at 1e-3 without warmup never learned). Same for every arm.
 
-steps: null               # set by the calibration; real runs refuse to start until then
+steps: 11460              # 20 SVHN epochs (573 steps each), from the calibration above. Never change it now.
 calibration_steps: 11460  # length of the calibration run: 20 SVHN epochs
 
 measure_every_steps: 250  # SVHN test accuracy + the old head (A: CIFAR-10, C: CIFAR-100)

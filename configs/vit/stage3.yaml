@@ -1,9 +1,9 @@
 # ViT stage 3: every arm relearns CIFAR-10 from a 5k subset with a fresh "relearn" head.
 # Same settings for every arm and subset.
 
-calibrated: false         # set to true once lr is chosen with --calibrate; real runs refuse until then
+calibrated: true          # lr and steps chosen with --calibrate (results below); fixed 2026-11-17
 
-lr: 1.0e-4                # placeholder (AdamW): set by the calibration below
+lr: 1.0e-4                # chosen by the calibration below (AdamW). Never change it now.
 lr_choices: [3.0e-5, 1.0e-4, 3.0e-4, 1.0e-3]
 
 # Calibration rule: the same as for ResNet-18 (configs/stage3.yaml).
@@ -12,11 +12,22 @@ lr_choices: [3.0e-5, 1.0e-4, 3.0e-4, 1.0e-3]
 # accuracy over A, B and C, averaged over the last 500 steps of the budget.
 # Checks, reported with the choice: (1) any arm whose own best lr beats the shared lr by > 2 points;
 # (2) if any arm still gains > 1 point in the last 500 steps, double the budget (`steps`).
-# Results: (to fill in)
+# Results (2026-11-17, A, B, C, seed 1, never-seen subset, validation, mean of steps 1,500–2,000):
+#   3e-5 → mean 71.99 (A 78.68 / B 65.65 / C 71.62)
+#   1e-4 → mean 74.07 (A 80.75 / B 68.31 / C 73.15)   ← best, not at the edge
+#   3e-4 → mean 73.93 (A 80.62 / B 68.87 / C 72.30)
+#   1e-3 → mean 69.34 (A 74.80 / B 64.24 / C 68.97)
+#   → lr = 1e-4.
+# Check (1), per-arm best vs shared: A and C are best at 1e-4 ✓; B is best at 3e-4 (68.87), 0.56 points
+#   above 1e-4 (≤ 2) ✓.
+# Check (2), gain in the last 500 steps at 1e-4 (mean of steps 1,500–2,000 minus mean of 1,000–1,400, the
+#   ResNet-18 definition): A +0.17, B +1.46, C +0.57 → B still gains > 1 point → budget doubled: steps 4,000.
+#   (Constant lr, so the first 2,000 steps of a 4,000-step run follow the same path: comparisons with
+#   ResNet-18 at 2,000 steps stay possible.)
 schedule: constant        # same learning rate all the way, so relearning curves stay comparable
 warmup_steps: 100         # protects what the backbone kept from the random new head's first big updates
 
-steps: 2000               # step budget: ~50 passes over the 5k images (40 steps per pass)
+steps: 4000               # doubled by check (2) above (2,000 → 4,000; ~100 passes over the 5k). Never change it now.
 
 dense_until: 500          # measure every dense_every steps until here...
 dense_every: 25

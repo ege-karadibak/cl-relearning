@@ -1,0 +1,73 @@
+{
+  "run": "A_stage2_lr0.001",
+  "seed": 1,
+  "config": {
+    "device": "cuda:1",
+    "gpu_memory_fraction": 0.33,
+    "optimizer": "adamw",
+    "momentum": null,
+    "weight_decay": 0.05,
+    "batch_size": 128,
+    "num_workers": 8,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "grad_clip": 1.0,
+    "augment": "randaugment",
+    "randaugment_ops": 2,
+    "randaugment_magnitude": 9,
+    "randaugment_magnitude_svhn": null,
+    "lr": 0.001,
+    "lr_choices": [
+      0.001,
+      0.0003,
+      0.0001
+    ],
+    "schedule": "cosine",
+    "warmup_steps": 573,
+    "steps": 11460,
+    "calibration_steps": 11460,
+    "measure_every_steps": 250,
+    "probe_every_steps": 500,
+    "resume_every_steps": 500,
+    "arch": "vit",
+    "probe": {
+      "device": "cuda:0",
+      "gpu_memory_fraction": 0.33,
+      "optimizer": "adamw",
+      "momentum": null,
+      "weight_decay": 0.05,
+      "batch_size": 128,
+      "num_workers": 8,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "grad_clip": 1.0,
+      "augment": "randaugment",
+      "randaugment_ops": 2,
+      "randaugment_magnitude": 9,
+      "randaugment_magnitude_svhn": null,
+      "C": 0.001,
+      "C_choices": [
+        0.0001,
+        0.0003,
+        0.001,
+        0.003,
+        0.01
+      ],
+      "max_iter": 2000
+    }
+  },
+  "provenance": {
+    "splits_sha256": "f3308e9a4aafd2c0",
+    "device_type": "cuda",
+    "device_name": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "cuda": "13.2",
+    "torch": "2.15.0+cu132",
+    "torchvision": "0.29.2+cu132",
+    "python": "3.11.18",
+    "date": "2026-11-17T12:47:50"
+  }
+}

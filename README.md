@@ -91,4 +91,4 @@ python src/run_stage2.py --arm A --seed 1 --arch vit --calibrate --lr 3e-4
 python src/run_stage3.py --arm A --seed 1 --subset never_seen --arch vit --calibrate --lr 1e-4
 ```
 
-The ViT settings in `configs/vit/` start as placeholders. Real runs refuse to start until they are set: stage-1 `epochs` from a baseline run, then the probe's `C`, the stage-2 `lr`/`steps` and the stage-3 `lr`, chosen by the same calibration rules as for ResNet-18. For analysis, `metrics.load_stage3(LOGS / "vit")`.
+The ViT settings in `configs/vit/` were chosen with the same kind of calibration rules as for ResNet-18 (on validation, seed 1, before any real run of that stage); each config file records the values tried, the results and any rule change. Chosen: stage 1 lr 5e-4 for 200 epochs, probe C 0.001, stage 2 lr 3e-4 for 20 SVHN epochs, stage 3 lr 1e-4 for 4,000 steps. All ViT runs (3 seeds) are in `logs/vit/`. For analysis, `metrics.load_stage3(LOGS / "vit")`.
