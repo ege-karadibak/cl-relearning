@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ViT Relearning Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+/* Lab report: one reading column with a sticky contents rail; charts and tables break slightly wider. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #161a21; --ink-2: #444c5a; --muted: #737b8a; --line: #dde1e8;
+  --accent: #0f6f66; --plain: #eaf4f2; --plain-line: #b9dcd6; --warn: #8a5a00; --warn-bg: #fbf3e2;
+  --a: #2b59c3; --b: #7a7f88; --c: #c2701d;
+  --seq1: #a3b9ec; --seq2: #5a7fd6; --seq3: #1e3d8c;
+  --display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101317; --surface: #171b21; --ink: #e6e9ef; --ink-2: #b3bac6; --muted: #8a92a1; --line: #2a3039;
+    --accent: #52b8aa; --plain: #13252a; --plain-line: #24474b; --warn: #e3b55b; --warn-bg: #2a2214;
+    --a: #7b9cf0; --b: #9ea4ae; --c: #e2965a;
+    --seq1: #34518f; --seq2: #6f93ef; --seq3: #c0d1fa;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101317; --surface: #171b21; --ink: #e6e9ef; --ink-2: #b3bac6; --muted: #8a92a1; --line: #2a3039;
+  --accent: #52b8aa; --plain: #13252a; --plain-line: #24474b; --warn: #e3b55b; --warn-bg: #2a2214;
+  --a: #7b9cf0; --b: #9ea4ae; --c: #e2965a;
+  --seq1: #34518f; --seq2: #6f93ef; --seq3: #c0d1fa;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.62 var(--body); }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.page { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; max-width: 1180px; margin: 0 auto; padding: 40px 24px 96px; }
+nav.toc { position: sticky; top: 24px; align-self: start; font-size: 13.5px; line-height: 1.45; max-height: calc(100vh - 48px); overflow-y: auto; }
+nav.toc b { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+nav.toc a { color: var(--ink-2); text-decoration: none; display: block; }
+nav.toc a:hover { color: var(--accent); }
+nav.toc li.sub a { padding-left: 14px; color: var(--muted); font-size: 12.5px; }
+main { min-width: 0; max-width: 820px; }
+header.top { padding-bottom: 28px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.kicker { font: 500 12px/1 var(--mono); letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+h1 { font: 600 clamp(30px, 4.4vw, 44px)/1.12 var(--display); margin: 12px 0 14px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 27px/1.2 var(--display); margin: 64px 0 12px; text-wrap: balance; scroll-margin-top: 20px; }
+h2 .n { font: 500 14px/1 var(--mono); color: var(--muted); display: block; margin-bottom: 8px; }
+h3 { font: 600 18px/1.3 var(--body); margin: 34px 0 8px; scroll-margin-top: 20px; }
+h4 { font: 600 15px/1.3 var(--body); margin: 20px 0 6px; }
+p, li { max-width: 68ch; }
+p { margin: 0 0 14px; }
+ul, ol { padding-left: 22px; margin: 0 0 14px; }
+li { margin: 3px 0; }
+.lede { font-size: 18px; color: var(--ink-2); }
+.meta { font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+code, .mono { font-family: var(--mono); font-size: .9em; }
+.num { font-variant-numeric: tabular-nums; }
+.plain { background: var(--plain); border: 1px solid var(--plain-line); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; }
+.plain > b:first-child { display: block; font: 600 11.5px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.plain p:last-child, .plain ul:last-child { margin-bottom: 0; }
+.caveat { background: var(--warn-bg); border-left: 3px solid var(--warn); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+.caveat > b:first-child { color: var(--warn); }
+.answer { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin: 24px 0 8px; }
+.answer h3 { margin-top: 0; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0 6px; }
+.tile { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--bg); }
+.tile .big { font: 600 30px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.tile .lab { font-size: 13px; color: var(--ink-2); }
+.tile .arm { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.tablewrap { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 12.5px; color: var(--ink-2); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.why { color: var(--ink-2); }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+figure { margin: 22px 0 26px; }
+figure.wide { margin-right: -40px; }
+figcaption { font-size: 13.5px; color: var(--ink-2); margin-top: 8px; max-width: 72ch; }
+figcaption b { color: var(--ink); }
+svg { max-width: 100%; height: auto; display: block; }
+.diagram { color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 8px; }
+.chart h5 { margin: 0 0 4px; font: 600 14px/1.3 var(--body); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 4px; }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.plot { position: relative; }
+.plot .grid { stroke: var(--line); stroke-width: 1; }
+.plot .axis { stroke: var(--muted); stroke-width: 1; }
+.plot .tick { fill: var(--muted); font: 11px var(--body); font-variant-numeric: tabular-nums; }
+.plot .axlab { fill: var(--ink-2); font: 12px var(--body); }
+.plot .endlab { fill: var(--ink-2); font: 500 11.5px var(--body); font-variant-numeric: tabular-nums; }
+.plot .ref { stroke: var(--muted); stroke-dasharray: 3 4; stroke-width: 1; }
+.plot .reflabel { fill: var(--muted); font: 11px var(--body); }
+.plot .cross { stroke: var(--muted); stroke-width: 1; }
+.plot .note { fill: var(--muted); font: 11px var(--body); }
+.tip { position: absolute; display: none; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); min-width: 150px; z-index: 2; }
+.tip .tiphead { color: var(--muted); margin-bottom: 3px; }
+.tip div { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.tip b { margin-left: auto; padding-left: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+dl.gloss { display: grid; grid-template-columns: 170px 1fr; gap: 8px 18px; font-size: 14.5px; }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 0; color: var(--ink-2); }
+.steps { counter-reset: st; list-style: none; padding: 0; }
+.steps > li { counter-increment: st; position: relative; padding-left: 34px; margin: 10px 0; }
+.steps > li::before { content: counter(st); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); font: 600 12px/22px var(--mono); text-align: center; color: var(--ink-2); }
+hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 0; }
+footer { margin-top: 56px; font-size: 13px; color: var(--muted); }
+@media (max-width: 980px) {
+  .page { grid-template-columns: 1fr; gap: 0; }
+  nav.toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; background: var(--surface); }
+  nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  nav.toc li.sub { display: none; }
+  figure.wide { margin-right: 0; }
+}
+@media (max-width: 700px) {
+  .grid3, .grid2, .tiles { grid-template-columns: 1fr; }
+  dl.gloss { grid-template-columns: 1fr; gap: 2px; }
+  dl.gloss dd { margin-bottom: 10px; }
+  .page { padding: 24px 16px 64px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <b>Contents</b>
+  <ol>
+    <li><a href="#answer">The answer</a></li>
+    <li><a href="#question">1 · The question</a></li>
+    <li><a href="#design">2 · Design: three arms</a></li>
+    <li><a href="#data">3 · Data and splits</a></li>
+    <li><a href="#model">4 · The ViT and its heads</a></li>
+    <li><a href="#training">5 · How every stage trains</a></li>
+    <li><a href="#measure">6 · What we measure</a></li>
+    <li class="sub"><a href="#probe">The linear probe</a></li>
+    <li class="sub"><a href="#metrics">Relearning metrics</a></li>
+    <li><a href="#calibration">7 · Calibration</a></li>
+    <li class="sub"><a href="#cal-s1lr">Stage-1 learning rate</a></li>
+    <li class="sub"><a href="#cal-probe">Probe strength C</a></li>
+    <li class="sub"><a href="#cal-s2lr">Stage-2 learning rate</a></li>
+    <li class="sub"><a href="#cal-s2len">Stage-2 length</a></li>
+    <li class="sub"><a href="#cal-s3lr">Stage-3 learning rate</a></li>
+    <li><a href="#runs">8 · Running it</a></li>
+    <li><a href="#results">9 · Results</a></li>
+    <li class="sub"><a href="#r-s1">Stage 1: learning</a></li>
+    <li class="sub"><a href="#r-s2">Stage 2: forgetting</a></li>
+    <li class="sub"><a href="#r-s3">Stage 3: relearning</a></li>
+    <li class="sub"><a href="#r-stats">Are the gaps real?</a></li>
+    <li class="sub"><a href="#r-headstart">Head start or faster?</a></li>
+    <li class="sub"><a href="#r-memory">Memory of exact images</a></li>
+    <li class="sub"><a href="#r-probe">Probe vs relearning</a></li>
+    <li><a href="#meaning">10 · What it means</a></li>
+    <li><a href="#resnet">11 · Compared with ResNet-18</a></li>
+    <li><a href="#limits">12 · Limitations</a></li>
+    <li><a href="#next">13 · Open questions</a></li>
+    <li><a href="#glossary">14 · Glossary</a></li>
+    <li><a href="../index.html">↑ All pages</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="top">
+  <div class="kicker">cl-relearning · ViT (Vision Transformer) · CIFAR-10 / SVHN / CIFAR-100 · 3 seeds</div>
+  <h1>Does a forgotten Vision Transformer relearn faster?</h1>
+  <p class="lede">The same experiment as with ResNet-18, repeated with a very different network: a small Vision Transformer. It learns CIFAR-10, then "forgets" it by training on house-number digits. We test whether the forgotten knowledge is really gone, or still hidden in the weights and quick to come back.</p>
+  <div class="meta"><span>Runs finished 17 Nov 2026</span><span>Lab GPU: RTX PRO 6000 Blackwell</span><span>PyTorch 2.15.0</span><span>All numbers: mean of seeds 1–3, CIFAR-10 test set unless marked</span><span><a href="vit-summary.html">One-page summary</a> · <a href="../comparison/resnet18-vs-vit.html">vs ResNet-18</a></span></div>
+</header>
+
+<section class="answer" id="answer" aria-labelledby="answer-h">
+  <h3 id="answer-h">The answer in one paragraph</h3>
+  <p>Yes, and almost exactly as much as with ResNet-18. After SVHN training, the ViT's old CIFAR-10 classifier dropped from 88.3% to 29.2%, so A looked largely forgotten. But when all three networks relearned CIFAR-10 from the same 5,000 images, the one that had learned CIFAR-10 before (A) ended <b>7.8 points</b> above a network that had learned a different photo dataset (C), and <b>11.3 points</b> above one that had learned nothing (B). That held in every seed. About 2 of those 8 points were already visible before relearning started. The other ~5.5 came from A improving faster during relearning. Unlike ResNet-18, the ViT also showed a small but consistent memory of the specific photos it had trained on (~1.8 points, positive in every seed).</p>
+  <div class="tiles">
+    <div class="tile"><div class="lab"><span class="arm" style="background:var(--a)"></span>A · learned CIFAR-10 first</div><div class="big">80.8%</div><div class="lab">after relearning (±0.7)</div></div>
+    <div class="tile"><div class="lab"><span class="arm" style="background:var(--c)"></span>C · learned CIFAR-100 first</div><div class="big">73.0%</div><div class="lab">after relearning (±0.1)</div></div>
+    <div class="tile"><div class="lab"><span class="arm" style="background:var(--b)"></span>B · learned nothing first</div><div class="big">69.5%</div><div class="lab">after relearning (±0.3)</div></div>
+  </div>
+</section>
+
+<!-- ============================================================ 1 -->
+<h2 id="question"><span class="n">01</span>The question</h2>
+<div class="plain"><b>In plain words</b>
+<p>The ResNet-18 experiment showed that a network which seems to have forgotten a task relearns it faster than one that never learned it. Here we ask whether that is a quirk of one kind of network. A Vision Transformer reads images in a completely different way, so if the same thing happens, it is more likely a general property of how networks learn.</p></div>
+<p>Neural networks trained on one task and then on another lose accuracy on the first task (<b>catastrophic forgetting</b>). It is normally measured with the network's original output layer, which can stop working simply because the layers below it changed, even if the information is still there.</p>
+<p>The question is the same as before: <b>after a network appears to have forgotten a task, does it relearn that task faster and better than an equally trained network that never learned it?</b> If yes, the "forgotten" knowledge was hidden, not erased. This report repeats every stage with a ViT, with the same data, splits, arms, seeds and measurements, and only the network (and the training recipe it needs) changed.</p>
+<h3>What would count as an answer</h3>
+<ul>
+  <li><b>Hidden:</b> A relearns CIFAR-10 better than C, consistently across seeds, by more than the seed-to-seed noise.</li>
+  <li><b>Erased:</b> A relearns no better than C.</li>
+  <li><b>Beyond ResNet-18:</b> is the size of the effect similar? Does the ViT keep a different <i>kind</i> of knowledge (general vs CIFAR-10-specific)?</li>
+</ul>
+
+<!-- ============================================================ 2 -->
+<h2 id="design"><span class="n">02</span>Design: three arms, three stages</h2>
+<div class="plain"><b>In plain words</b>
+<p>Three copies of the same network take different paths. A learns CIFAR-10, B learns nothing, C learns CIFAR-100. Then all three learn house numbers, which overwrites what they knew. Finally, all three learn CIFAR-10 from a small set of photos, and we watch who learns fastest. The design is identical to the ResNet-18 experiment.</p></div>
+<figure class="wide">
+<div class="diagram">
+<svg viewBox="0 0 860 300" role="img" aria-label="Three arms through three stages. A: CIFAR-10, then SVHN, then relearn CIFAR-10. B: skips stage 1, then SVHN, then learns CIFAR-10. C: CIFAR-100, then SVHN, then learns CIFAR-10.">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" fill="currentColor">
+    <text x="245" y="22" text-anchor="middle" font-size="12.5" font-weight="600">STAGE 1 · learn</text>
+    <text x="490" y="22" text-anchor="middle" font-size="12.5" font-weight="600">STAGE 2 · overwrite</text>
+    <text x="735" y="22" text-anchor="middle" font-size="12.5" font-weight="600">STAGE 3 · relearn</text>
+    <text x="245" y="38" text-anchor="middle" font-size="11" opacity=".65">200 epochs · 40k photos</text>
+    <text x="490" y="38" text-anchor="middle" font-size="11" opacity=".65">20 epochs · 73k digit photos</text>
+    <text x="735" y="38" text-anchor="middle" font-size="11" opacity=".65">4,000 steps · 5k photos</text>
+    <!-- rows -->
+    <g>
+      <circle cx="30" cy="85" r="15" style="fill:var(--a)"/><text x="30" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">A</text>
+      <text x="54" y="80" font-size="12" font-weight="600">learned</text><text x="54" y="95" font-size="12" font-weight="600">CIFAR-10</text>
+    </g>
+    <g>
+      <circle cx="30" cy="165" r="15" style="fill:var(--b)"/><text x="30" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">B</text>
+      <text x="54" y="160" font-size="12" font-weight="600">never</text><text x="54" y="175" font-size="12" font-weight="600">learned</text>
+    </g>
+    <g>
+      <circle cx="30" cy="245" r="15" style="fill:var(--c)"/><text x="30" y="250" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">C</text>
+      <text x="54" y="240" font-size="12" font-weight="600">learned</text><text x="54" y="255" font-size="12" font-weight="600">CIFAR-100</text>
+    </g>
+    <!-- stage 1 boxes -->
+    <rect x="150" y="58" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+    <rect x="150" y="58" width="5" height="54" style="fill:var(--a)"/>
+    <text x="245" y="81" text-anchor="middle" font-size="13" font-weight="600">CIFAR-10 (10 objects)</text><text x="245" y="99" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: cifar10</text>
+    <rect x="150" y="138" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 4"/>
+    <text x="245" y="161" text-anchor="middle" font-size="13" opacity=".75">skipped</text><text x="245" y="179" text-anchor="middle" font-size="11.5" opacity=".65">random weights</text>
+    <rect x="150" y="218" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+    <rect x="150" y="218" width="5" height="54" style="fill:var(--c)"/>
+    <text x="245" y="241" text-anchor="middle" font-size="13" font-weight="600">CIFAR-100 (100 objects)</text><text x="245" y="259" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: cifar100</text>
+    <!-- stage 2 boxes -->
+    <g>
+      <rect x="395" y="58" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <rect x="395" y="138" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <rect x="395" y="218" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <text x="490" y="81" text-anchor="middle" font-size="13" font-weight="600">SVHN (digits 0–9)</text><text x="490" y="99" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: svhn</text>
+      <text x="490" y="161" text-anchor="middle" font-size="13" font-weight="600">SVHN (digits 0–9)</text><text x="490" y="179" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: svhn</text>
+      <text x="490" y="241" text-anchor="middle" font-size="13" font-weight="600">SVHN (digits 0–9)</text><text x="490" y="259" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: svhn</text>
+    </g>
+    <!-- stage 3 boxes -->
+    <g>
+      <rect x="640" y="58" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <rect x="640" y="138" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <rect x="640" y="218" width="190" height="54" rx="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <text x="735" y="81" text-anchor="middle" font-size="13" font-weight="600">CIFAR-10 again</text><text x="735" y="99" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: relearn (new)</text>
+      <text x="735" y="161" text-anchor="middle" font-size="13" font-weight="600">CIFAR-10, first time</text><text x="735" y="179" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: relearn (new)</text>
+      <text x="735" y="241" text-anchor="middle" font-size="13" font-weight="600">CIFAR-10, first time</text><text x="735" y="259" text-anchor="middle" font-size="11.5" font-family="IBM Plex Mono, monospace">head: relearn (new)</text>
+    </g>
+    <!-- arrows -->
+    <g stroke="currentColor" stroke-opacity=".7" stroke-width="1.4" fill="none" marker-end="url(#ar)">
+      <line x1="342" y1="85" x2="391" y2="85"/><line x1="342" y1="165" x2="391" y2="165"/><line x1="342" y1="245" x2="391" y2="245"/>
+      <line x1="587" y1="85" x2="636" y2="85"/><line x1="587" y1="165" x2="636" y2="165"/><line x1="587" y1="245" x2="636" y2="245"/>
+    </g>
+    <text x="366" y="292" text-anchor="middle" font-size="11" opacity=".7">saved: stage-1 checkpoint (S1)</text>
+    <text x="612" y="292" text-anchor="middle" font-size="11" opacity=".7">saved: stage-2 checkpoint (S2)</text>
+  </g>
+</svg>
+</div>
+<figcaption><b>The whole experiment.</b> Within a seed, all three arms start from the identical random weights. Each stage adds a new output layer (a "head", see section 4); the backbone underneath is the same network throughout. Stage 3 runs twice per arm, on two different 5k photo sets (section 3).</figcaption>
+</figure>
+<h3>Why each arm exists</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Arm</th><th>Role</th><th>What comparing to it tells us</th></tr></thead>
+<tbody>
+<tr><td><span class="swatch" style="background:var(--a)"></span><b>A</b></td><td>The test subject: learned CIFAR-10, then had it overwritten.</td><td class="why">Its relearning is what we are measuring.</td></tr>
+<tr><td><span class="swatch" style="background:var(--c)"></span><b>C</b></td><td>The clean control: same amount of training as A, same kind of images, but a different label set (CIFAR-100).</td><td class="why"><b>A vs C</b> isolates knowledge specific to CIFAR-10.</td></tr>
+<tr><td><span class="swatch" style="background:var(--b)"></span><b>B</b></td><td>The baseline: no stage 1, only SVHN.</td><td class="why"><b>C vs B</b> measures the general benefit of photo pretraining.</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ 3 -->
+<h2 id="data"><span class="n">03</span>Data and splits</h2>
+<p>Exactly the same data and the same saved splits as the ResNet-18 experiment (<code>data/splits.npz</code>, fingerprint <code>f3308e9a4aafd2c0</code>), so both backbones saw the same images in every role.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Dataset</th><th>What it is</th><th class="r">Train</th><th class="r">Test</th><th>Used in</th></tr></thead>
+<tbody>
+<tr><td><b>CIFAR-10</b></td><td>32×32 colour photos, 10 classes</td><td class="r">50,000</td><td class="r">10,000</td><td>A's stage 1, everyone's stage 3, the probe</td></tr>
+<tr><td><b>CIFAR-100</b></td><td>32×32 colour photos, 100 classes, same source as CIFAR-10</td><td class="r">50,000</td><td class="r">10,000</td><td>C's stage 1 (40k of the 50k)</td></tr>
+<tr><td><b>SVHN</b></td><td>32×32 crops of house numbers from Street View, digits 0–9</td><td class="r">73,257</td><td class="r">26,032</td><td>Everyone's stage 2</td></tr>
+</tbody></table></div>
+<h3>How CIFAR-10 is divided</h3>
+<figure>
+<div class="diagram">
+<svg viewBox="0 0 780 170" role="img" aria-label="CIFAR-10's 60,000 images split into 40,000 for stage 1, of which 5,000 per seed form the A-seen set, 5,000 validation, 5,000 never-seen, and the 10,000 official test images.">
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" fill="currentColor">
+    <text x="10" y="18" font-size="12" font-weight="600">CIFAR-10 · 60,000 images (one block = one group, width to scale)</text>
+    <rect x="10" y="32" width="506" height="44" rx="5" style="fill:var(--a)" fill-opacity=".22" stroke="currentColor" stroke-opacity=".4"/>
+    <rect x="22" y="40" width="63" height="28" rx="4" style="fill:var(--a)" fill-opacity=".75"/>
+    <text x="53" y="58" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">A-seen</text>
+    <text x="300" y="59" text-anchor="middle" font-size="13" font-weight="600">c10_pretrain · 40,000</text>
+    <rect x="520" y="32" width="63" height="44" rx="5" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-opacity=".4"/>
+    <rect x="587" y="32" width="63" height="44" rx="5" style="fill:var(--accent)" fill-opacity=".25" stroke="currentColor" stroke-opacity=".4"/>
+    <rect x="654" y="32" width="116" height="44" rx="5" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-opacity=".4"/>
+    <text x="712" y="59" text-anchor="middle" font-size="13" font-weight="600">test · 10,000</text>
+    <g font-size="11.5">
+      <line x1="53" y1="80" x2="53" y2="100" stroke="currentColor" stroke-opacity=".5"/>
+      <text x="10" y="114">A-seen · 5,000 per seed, drawn from A's 40k</text>
+      <text x="10" y="129" opacity=".7">relearning set 1 (A trained on these; B and C never did)</text>
+      <line x1="551" y1="80" x2="551" y2="140" stroke="currentColor" stroke-opacity=".5"/>
+      <text x="551" y="154" text-anchor="middle">validation · 5,000</text>
+      <text x="551" y="167" text-anchor="middle" opacity=".7">choosing settings only</text>
+      <line x1="618" y1="80" x2="618" y2="98" stroke="currentColor" stroke-opacity=".5"/>
+      <text x="618" y="112" text-anchor="middle">never-seen · 5,000</text>
+      <text x="618" y="125" text-anchor="middle" opacity=".7">relearning set 2, probe training</text>
+      <line x1="712" y1="80" x2="712" y2="140" stroke="currentColor" stroke-opacity=".5"/>
+      <text x="712" y="154" text-anchor="middle">official test</text>
+      <text x="712" y="167" text-anchor="middle" opacity=".7">every reported score</text>
+    </g>
+  </g>
+</svg>
+</div>
+<figcaption><b>Every image has exactly one job.</b> The 50k training images are split by class (4,000 / 500 / 500 per class) with a fixed seed (0) and saved once to <code>data/splits.npz</code>. The test set is never trained on by anyone. Each run records the splits' fingerprint (<code>f3308e9a4aafd2c0</code>) and refuses to load a checkpoint made with different splits.</figcaption>
+</figure>
+<h3>Preprocessing</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Step</th><th>Setting</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Normalization</td><td>CIFAR-10 mean and std for <b>every</b> dataset and stage</td><td class="why">Same as ResNet-18: a stage change is a change of content only.</td></tr>
+<tr><td>Random crop, flip</td><td>pad 4, crop 32×32; flip on CIFAR only, <b>not SVHN</b></td><td class="why">Same as ResNet-18. A mirrored digit can look like a different symbol.</td></tr>
+<tr><td><b>RandAugment</b> (ViT only)</td><td>2 random operations per training image, magnitude 9 (of 30), after crop and flip, on every training set</td><td class="why">A ViT has no built-in notion of nearby pixels belonging together, so on small datasets it overfits quickly. Strong augmentation is the standard remedy. Same setting for every arm and stage.</td></tr>
+<tr><td>Evaluation images</td><td>No augmentation, fixed order</td><td class="why">Scores must be identical every time they are measured.</td></tr>
+</tbody></table></div>
+<p>A fallback was fixed before stage 2: if SVHN could not reach 95% with RandAugment, its strength would be lowered for SVHN only (5, then 1), keeping stage 1 valid. It was not needed.</p>
+
+<!-- ============================================================ 4 -->
+<h2 id="model"><span class="n">04</span>The ViT and its heads</h2>
+<div class="plain"><b>In plain words</b>
+<p>A ResNet slides small filters over the picture. A Vision Transformer instead cuts the picture into small squares ("patches"), turns each square into a list of numbers, and lets every square look at every other square to decide what matters. A special extra slot, the <b>class token</b>, collects a summary of the whole picture: 384 numbers. As before, a small <b>head</b> turns those numbers into an answer, and each task gets its own head. A step-by-step example is in <a href="../explainers/how-a-vit-sees.html">How a ViT sees a picture</a>.</p></div>
+<figure>
+<div class="diagram">
+<svg viewBox="0 0 780 230" role="img" aria-label="A 32 by 32 image is cut into 64 patches of 4 by 4 pixels, which go into the ViT backbone with 10.7 million parameters, producing 384 features from the class token, which feed one active head out of four: cifar10, cifar100, svhn and relearn.">
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" fill="currentColor">
+    <rect x="10" y="85" width="70" height="60" rx="6" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-opacity=".5"/>
+    <text x="45" y="104" text-anchor="middle" font-size="12" font-weight="600">photo</text><text x="45" y="120" text-anchor="middle" font-size="11" opacity=".7">32×32×3</text><text x="45" y="136" text-anchor="middle" font-size="10.5" opacity=".7">64 patches</text>
+    <rect x="125" y="55" width="250" height="120" rx="8" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".6"/>
+    <text x="250" y="84" text-anchor="middle" font-size="14" font-weight="600">Backbone · ViT</text>
+    <text x="250" y="104" text-anchor="middle" font-size="11.5" opacity=".75">4×4 patches → 384 numbers each</text>
+    <text x="250" y="120" text-anchor="middle" font-size="11.5" opacity=".75">+ class token · 6 transformer blocks</text>
+    <text x="250" y="152" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace">10,691,712 parameters</text>
+    <rect x="420" y="95" width="80" height="40" rx="6" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-opacity=".5"/>
+    <text x="460" y="114" text-anchor="middle" font-size="12" font-weight="600">384</text><text x="460" y="128" text-anchor="middle" font-size="10.5" opacity=".7">class token</text>
+    <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#ar2)"><line x1="82" y1="115" x2="121" y2="115"/><line x1="377" y1="115" x2="416" y2="115"/></g>
+    <g font-size="12">
+      <rect x="560" y="18" width="210" height="40" rx="6" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="572" y="36" font-family="IBM Plex Mono, monospace">cifar10</text><text x="572" y="51" font-size="10.5" opacity=".7">384 → 10 · 3,850 params · A, stage 1</text>
+      <rect x="560" y="68" width="210" height="40" rx="6" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="572" y="86" font-family="IBM Plex Mono, monospace">cifar100</text><text x="572" y="101" font-size="10.5" opacity=".7">384 → 100 · 38,500 params · C, stage 1</text>
+      <rect x="560" y="118" width="210" height="40" rx="6" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="572" y="136" font-family="IBM Plex Mono, monospace">svhn</text><text x="572" y="151" font-size="10.5" opacity=".7">384 → 10 · all arms, stage 2</text>
+      <rect x="560" y="168" width="210" height="40" rx="6" fill="none" stroke="currentColor" stroke-width="2" style="stroke:var(--accent)"/>
+      <text x="572" y="186" font-family="IBM Plex Mono, monospace" font-weight="600">relearn</text><text x="572" y="201" font-size="10.5" opacity=".7">384 → 10 · all arms, stage 3 · new</text>
+    </g>
+    <g stroke="currentColor" stroke-opacity=".35" fill="none"><path d="M502,115 C530,115 530,38 556,38"/><path d="M502,115 C530,115 530,88 556,88"/><path d="M502,115 C530,115 530,138 556,138"/></g>
+    <path d="M502,115 C530,115 530,188 552,188" fill="none" stroke-width="2" style="stroke:var(--accent)" marker-end="url(#ar2)"/>
+    <text x="530" y="224" text-anchor="middle" font-size="11" opacity=".75">only one head is active at a time</text>
+  </g>
+</svg>
+</div>
+<figcaption><b>One backbone, several heads, exactly as with ResNet-18.</b> Old heads stay in the model untouched, which is how A's old <code>cifar10</code> head can be tested after SVHN. Each head is under 0.4% of the parameters, so the knowledge being tested is in the backbone.</figcaption>
+</figure>
+<h3>The backbone</h3>
+<p>torchvision's <code>VisionTransformer</code>, sized to match ResNet-18 (10.7M vs 11.2M parameters): 32×32 input, 4×4 patches (64 patches), hidden width 384, 6 transformer blocks with 6 attention heads each, MLP width 1,536. A learned class token is added to the patches, and its final 384 numbers are the features. The ImageNet classification layer is removed.</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>ResNet-18</th><th>ViT (this report)</th></tr></thead>
+<tbody>
+<tr><td>How it reads the image</td><td>3×3 filters slid over the image, layer after layer</td><td>64 patches of 4×4 pixels; every patch can attend to every other one from the first block</td></tr>
+<tr><td>Built-in assumptions</td><td>nearby pixels belong together; a pattern means the same anywhere</td><td>almost none: it must learn them from data, so it needs more data or stronger augmentation</td></tr>
+<tr><td>Normalization layers</td><td><b>BatchNorm</b>: keeps running averages of the data it sees</td><td><b>LayerNorm</b>: normalizes each image on its own, keeps no data statistics</td></tr>
+<tr><td>Features</td><td>512 (global average pool)</td><td>384 (class token)</td></tr>
+<tr><td>Parameters (backbone)</td><td>11,168,832</td><td>10,691,712</td></tr>
+</tbody></table></div>
+<p>The last two rows of the first table matter for this experiment: BatchNorm's running statistics get overwritten when a network trains on new data (here SVHN), even if the filters change little. A ViT has no such statistics. Section 11 comes back to this.</p>
+<h3>What a head is, and why a fresh one in stage 3</h3>
+<p>A head is a linear layer: scores = <i>W</i>·<i>x</i> + <i>b</i>, with <i>W</i> of shape 10×384 for a 10-class head. It has learned what each of the 384 slots means <i>in that backbone</i>. When stage 2 changes the backbone, the slot meanings shift and the old head reads the wrong evidence, so the old head can fail even when the information is still present. In stage 3, every arm gets an identical, freshly seeded head, so the backbone is the only thing that differs.</p>
+
+<!-- ============================================================ 5 -->
+<h2 id="training"><span class="n">05</span>How every stage trains</h2>
+<p>In every stage, the backbone and the active head train <b>together</b>. A new optimizer is built at the start of each stage, so no optimizer state carries over and old heads stay frozen. The recipe differs from ResNet-18's because ViTs trained from scratch need one: <b>AdamW</b> instead of SGD, a <b>warmup</b> in every stage, <b>gradient clipping</b>, and RandAugment.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Setting</th><th>Stage 1</th><th>Stage 2</th><th>Stage 3</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Data</td><td>CIFAR-10 or CIFAR-100, 40k</td><td>SVHN, 73k</td><td>CIFAR-10, 5k</td><td class="why">Same as ResNet-18.</td></tr>
+<tr><td>Optimizer</td><td colspan="3">AdamW, betas (0.9, 0.999), weight decay 0.05 on weight matrices only (none on biases, LayerNorms, position embedding, class token), gradient clipping at norm 1.0, batch 128</td><td class="why">The standard recipe for training ViTs from scratch; plain SGD trains them poorly. Clipping guards against early loss spikes.</td></tr>
+<tr><td>Learning rate</td><td class="num">5×10⁻⁴ <i>(calibrated)</i></td><td class="num">3×10⁻⁴ <i>(calibrated)</i></td><td class="num">1×10⁻⁴ <i>(calibrated)</i></td><td class="why">All three were chosen by rules on validation data (section 7). Stage 1 was not calibrated for ResNet-18; for the ViT it had to be.</td></tr>
+<tr><td>Warmup</td><td>10 epochs</td><td>1 epoch (573 steps)</td><td>100 steps</td><td class="why">The learning rate rises from ~0 at the start of each stage. Stage 2 has a warmup for the ViT only: B, starting from random weights, never learned SVHN without one.</td></tr>
+<tr><td>Schedule</td><td>cosine to 0</td><td>cosine to 0</td><td>constant</td><td class="why">As for ResNet-18: stage 3 keeps a constant rate so relearning curves are comparable step by step.</td></tr>
+<tr><td>Length</td><td class="num">200 epochs (62,600 steps)</td><td class="num">20 epochs (11,460 steps) <i>(calibrated)</i></td><td class="num">4,000 steps (≈100 passes over 5k) <i>(calibrated)</i></td><td class="why">Stage 1 matches ResNet-18. Stage 2 is 5× ResNet-18's 4 epochs, and stage 3 2× its 2,000 steps (section 7).</td></tr>
+<tr><td>Measured every</td><td>epoch</td><td>250 steps (probe every 500)</td><td>25 steps until 500, then 100</td><td class="why">Same as ResNet-18.</td></tr>
+</tbody></table></div>
+<p>The same reproducibility safeguards as for ResNet-18 apply: seeding before every new head, 8 data workers throughout, full provenance in every checkpoint and log, crash-safe resume files, and no overwriting of finished results. ViT checkpoints also record their architecture, and loading refuses a checkpoint of the other backbone. The real stage-2 runs replayed the seed-1 calibration run exactly (identical SVHN accuracies at every logged step), a direct check of reproducibility on the GPU.</p>
+
+<!-- ============================================================ 6 -->
+<h2 id="measure"><span class="n">06</span>What we measure</h2>
+<p>Exactly the same measurements as for ResNet-18.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Measurement</th><th>When</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><b>Active head accuracy</b></td><td>Every stage</td><td class="why">How well the network does its current task.</td></tr>
+<tr><td><b>Old head accuracy</b></td><td>During stage 2</td><td class="why">The classic forgetting measure (A: <code>cifar10</code> on CIFAR-10 test; C: <code>cifar100</code> on CIFAR-100 test).</td></tr>
+<tr><td><b>Linear probe</b></td><td>End of stage 1, B's start, every 500 steps in stage 2</td><td class="why">How much CIFAR-10 information can be read from the frozen backbone right now, with a freshly fitted head.</td></tr>
+<tr><td><b>Relearning curves</b></td><td>Stage 3</td><td class="why">How fast and how far each backbone recovers CIFAR-10 when it is allowed to train.</td></tr>
+</tbody></table></div>
+<h3 id="probe">The linear probe</h3>
+<div class="plain"><b>In plain words</b>
+<p>Freeze the network, run 5,000 CIFAR-10 photos through it, and fit the simplest possible classifier on the 384 numbers it produces. If that simple classifier does well, the network must still hold the information in an easy-to-read form. The network itself is never changed.</p></div>
+<ol class="steps">
+<li>Put the backbone in evaluation mode with no training.</li>
+<li>Extract the 384 class-token features for each of the 5,000 <b>never-seen</b> images (no augmentation).</li>
+<li>Standardize each feature, then fit logistic regression (scikit-learn, C = 0.001, up to 2,000 iterations).</li>
+<li>Score it on the 10,000 CIFAR-10 <b>test</b> images (validation during calibration), then throw it away.</li>
+</ol>
+<figure>
+<div class="diagram">
+<svg viewBox="0 0 780 160" role="img" aria-label="The probe keeps the backbone frozen and trains only a new linear head. Relearning trains both the backbone and a new head.">
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" fill="currentColor">
+    <text x="190" y="18" text-anchor="middle" font-size="13" font-weight="600">Probe: read what is there</text>
+    <text x="590" y="18" text-anchor="middle" font-size="13" font-weight="600">Relearning (stage 3): repair it too</text>
+    <rect x="30" y="40" width="200" height="70" rx="7" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-opacity=".5" stroke-dasharray="5 4"/>
+    <text x="130" y="72" text-anchor="middle" font-size="13" font-weight="600">backbone</text><text x="130" y="92" text-anchor="middle" font-size="12" opacity=".75">frozen</text>
+    <rect x="260" y="50" width="110" height="50" rx="7" fill="none" stroke-width="2" style="stroke:var(--accent)"/>
+    <text x="315" y="72" text-anchor="middle" font-size="12" font-weight="600">linear head</text><text x="315" y="88" text-anchor="middle" font-size="11.5" style="fill:var(--accent)">trains</text>
+    <line x1="232" y1="75" x2="257" y2="75" stroke="currentColor"/>
+    <text x="200" y="138" text-anchor="middle" font-size="11.5" opacity=".75">one fit, 5k never-seen images · no gradient reaches the backbone</text>
+    <rect x="430" y="40" width="200" height="70" rx="7" fill="none" stroke-width="2" style="stroke:var(--accent)"/>
+    <text x="530" y="72" text-anchor="middle" font-size="13" font-weight="600">backbone</text><text x="530" y="92" text-anchor="middle" font-size="12" style="fill:var(--accent)">trains</text>
+    <rect x="660" y="50" width="110" height="50" rx="7" fill="none" stroke-width="2" style="stroke:var(--accent)"/>
+    <text x="715" y="72" text-anchor="middle" font-size="12" font-weight="600">relearn head</text><text x="715" y="88" text-anchor="middle" font-size="11.5" style="fill:var(--accent)">trains</text>
+    <line x1="632" y1="75" x2="657" y2="75" stroke="currentColor"/>
+    <text x="600" y="138" text-anchor="middle" font-size="11.5" opacity=".75">4,000 AdamW steps, 5k images · every weight can move</text>
+  </g>
+</svg>
+</div>
+<figcaption><b>Same data, different freedom.</b> The probe is trained on the same never-seen 5k that relearning copy 2 uses, so it is effectively "stage 3 with the backbone frozen". The difference between the two shows how much the backbone repairs itself during relearning.</figcaption>
+</figure>
+<h3 id="metrics">Relearning metrics</h3>
+<p>Identical to ResNet-18. Every metric uses a <b>smoothed</b> curve (each point is the mean of itself and the previous two measurements), because single measurements jump by several points.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Metric</th><th>Definition</th><th>Plain meaning</th></tr></thead>
+<tbody>
+<tr><td><code>final_acc</code></td><td>Mean raw test accuracy over the last 500 steps</td><td class="why">Where relearning ended up.</td></tr>
+<tr><td><code>auc</code></td><td>Area under the raw accuracy curve ÷ number of steps</td><td class="why">Average accuracy over the whole relearning.</td></tr>
+<tr><td><code>steps_to_50/70/80</code></td><td>First step where the smoothed curve reaches 50/70/80%</td><td class="why">How quickly a level is reached. "Never" if not within 4,000 steps.</td></tr>
+<tr><td><code>gain_after_50</code></td><td>Smoothed accuracy gained in the 500 steps after first reaching 50%</td><td class="why">Speed from a common starting level: removes any head start.</td></tr>
+<tr><td>Gain over probe</td><td><code>final_acc</code> − probe accuracy at the end of stage 2</td><td class="why">How much relearning added beyond what could already be read out.</td></tr>
+<tr><td>Memory effect</td><td>gap(A) − gap(C), where gap = result on A-seen − result on never-seen</td><td class="why">Does A gain extra on the very photos it once trained on?</td></tr>
+</tbody></table></div>
+<p><b>Is a difference real?</b> Differences between arms are paired by seed (same random start). A difference is convincing when its mean is clearly larger than its spread across seeds, with the same sign in every seed. Paired t-tests are a rough guide only (2 degrees of freedom).</p>
+
+<!-- ============================================================ 7 -->
+<h2 id="calibration"><span class="n">07</span>Calibration: choosing settings without peeking</h2>
+<div class="plain"><b>In plain words</b>
+<p>Settings like the learning rates can change the result. To avoid picking whatever makes the hypothesis look good, every setting was chosen by trial runs scored on the <b>validation</b> photos (never the test set), with a rule written down <b>before</b> the trial, then frozen in the config file. The ViT needed more calibration than ResNet-18, and two rules had to be adapted to it; each change is recorded here with the moment it was made.</p></div>
+<p>All calibration used seed 1, except the stage-1 learning rate (seeds 1–3). Rules, results and changes are recorded as comments in <code>configs/vit/*.yaml</code>.</p>
+<div class="caveat"><b>A first attempt was discarded.</b> The first ViT recipe used a stage-1 learning rate of 1×10⁻³. Stage 1 then depended strongly on the seed (A: 76.8% / 82.3% / 75.0% on test, with a long stall that only seed 2 escaped), and in the stage-2 calibration B never learned SVHN at that rate. All those runs were archived (<code>logs/vit/archive_lr1e-3/</code>) and nothing from them is used below.</div>
+
+<h3 id="cal-s1lr">7.1 · Stage-1 learning rate</h3>
+<p><b>Rule (fixed before running):</b> for each rate, train A for the full 200 epochs on seeds 1, 2 and 3, scored on validation. A run's score is its mean validation accuracy over the last 5 epochs. A rate is <i>stable</i> if its three scores lie within 2 points. Choose the stable rate with the highest mean; if neither is stable, try 1×10⁻⁴.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Rate</th><th class="r">Seed 1</th><th class="r">Seed 2</th><th class="r">Seed 3</th><th class="r">Mean</th><th class="r">Spread</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><b>5×10⁻⁴</b></td><td class="r">88.74</td><td class="r">88.03</td><td class="r">88.38</td><td class="r"><b>88.38</b></td><td class="r">0.72</td><td><b>stable, best → chosen</b></td></tr>
+<tr><td>3×10⁻⁴</td><td class="r">88.44</td><td class="r">87.76</td><td class="r">87.29</td><td class="r">87.83</td><td class="r">1.15</td><td>stable</td></tr>
+</tbody></table></div>
+<p>Compared with 1×10⁻³: no stall after warmup, about 11 points higher, and the seeds agree (0.7-point spread instead of 7). The real stage-1 runs ended at 88.1–88.5% on test.</p>
+
+<h3 id="cal-probe">7.2 · Probe regularization strength C</h3>
+<p><b>Rule (same as ResNet-18):</b> on A after stage 1 (seed 1, validation), take the best value that is not at the edge of the range tried. If the best is at the edge, move the range and try again.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>C</th><th class="r">0.0001</th><th class="r">0.0003</th><th class="r">0.001</th><th class="r">0.003</th><th class="r">0.01</th><th class="r">0.03</th><th class="r">0.1</th></tr></thead>
+<tbody>
+<tr><td>First range</td><td class="r">–</td><td class="r">–</td><td class="r">88.90</td><td class="r">88.60</td><td class="r">88.24</td><td class="r">88.02</td><td class="r">87.06</td></tr>
+<tr><td>Range moved down</td><td class="r">88.80</td><td class="r">88.88</td><td class="r"><b>88.90</b></td><td class="r">88.60</td><td class="r">88.24</td><td class="r">–</td><td class="r">–</td></tr>
+</tbody></table></div>
+<p>In the first range the best (0.001) was at the edge and clearly ahead (0.30 points, 15 of 5,000 images), so the range was moved down before running it again. <b>Chosen: 0.001</b>, now a clear peak in the middle. The ViT needs 100× stronger regularization than ResNet-18 (C = 0.1): its 384 features overfit a 5k-image probe more easily.</p>
+
+<h3 id="cal-s2lr">7.3 · Stage-2 learning rate</h3>
+<p><b>Starting rule (ResNet-18's):</b> the <i>gentlest</i> rate where, after a 20-epoch trial, A's SVHN ≥ 95% and A's old head ≤ 15%, and B's SVHN ≥ 95%. Stage 2 also got a 1-epoch warmup for every arm, after B failed without one in the discarded first attempt.</p>
+<p><b>Rule change (made after the 1×10⁻³ trial only, before the 3×10⁻⁴ and 1×10⁻⁴ results):</b> at 1×10⁻³, the strongest rate, A's old head fell from 88.8% to about 20% by epoch 3.5 and then stayed flat for 16 epochs. Gentler rates forget less, so no rate could reach 15%. The aim, "A clearly looks forgotten", was kept, without a cut-off this backbone cannot reach: <b>among the rates where A and B both reach SVHN ≥ 95%, take the one where A's old head ends lowest</b> (within 2 points, the gentler one).</p>
+<figure class="wide">
+<div class="grid3">
+  <div class="chart"><h5>A's old head on CIFAR-10 (validation)</h5><div id="c-cal2-old"></div></div>
+  <div class="chart"><h5>CIFAR-10 probe (validation)</h5><div id="c-cal2-probe"></div></div>
+  <div class="chart"><h5>B's SVHN accuracy (test)</h5><div id="c-cal2-bsvhn"></div></div>
+</div>
+<figcaption><b>The old head levels off above 15% at every rate; B decides which rates are usable.</b> At 1×10⁻³ B never really learns SVHN (55%); at 1×10⁻⁴ it ends just short (94.4%). Only 3×10⁻⁴ passes for both arms. Hover for values.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Rate</th><th class="r">A · SVHN</th><th class="r">A · old head</th><th class="r">A · probe</th><th class="r">B · SVHN</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>1×10⁻⁴</td><td class="r">95.4%</td><td class="r">37.1%</td><td class="r">62.9%</td><td class="r">94.4%</td><td>fails: B below 95%</td></tr>
+<tr><td><b>3×10⁻⁴</b></td><td class="r">96.2%</td><td class="r">31.4%</td><td class="r">58.7%</td><td class="r">95.7%</td><td><b>passes → chosen</b></td></tr>
+<tr><td>1×10⁻³</td><td class="r">97.0%</td><td class="r">21.2%</td><td class="r">50.1%</td><td class="r">54.7%</td><td>fails: B never learns</td></tr>
+</tbody></table></div>
+
+<h3 id="cal-s2len">7.4 · Stage-2 length</h3>
+<p><b>Rule (adapted with the rule change above):</b> the smallest whole number of SVHN epochs at which A's old head is within 2 points of its lowest value (it has stopped dropping); then check that B reaches SVHN ≥ 95% at that length, with a full schedule of that length, and lengthen if not.</p>
+<ol class="steps">
+<li>At 3×10⁻⁴, A's lowest old head was 31.1%. It first came within 2 points at step 5,000 (epoch 8.7) and stayed between 31% and 34% afterwards → <b>9 epochs</b>.</li>
+<li>B trial at 9 epochs (5,157 steps): <b>92.2%</b> on SVHN, so the rule says lengthen.</li>
+<li>Instead of searching 10, 11, … epochs one by one, we used <b>20 epochs</b>: the calibration run itself, already measured to pass for both arms (B 95.7%, A 96.2%). This was decided after the 9-epoch trial and before any stage-3 result.</li>
+</ol>
+<div class="caveat"><b>What this choice means.</b> 20 epochs is a known passing length, not the smallest one. A's old head (31–34%) and probe (~58–59%, B ~45%) are flat from epoch 9 to 20, so the longer overwrite changes A little and, if anything, makes an A advantage harder to show. Unlike ResNet-18, where A's forgetting set the length, here B (learning SVHN from random weights) set it.</div>
+
+<h3 id="cal-s3lr">7.5 · Stage-3 learning rate</h3>
+<p><b>Rule (ResNet-18's, including its averaged reading, fixed before any ViT stage-3 run):</b> try 3×10⁻⁵, 1×10⁻⁴, 3×10⁻⁴ and 1×10⁻³ for A, B and C (seed 1, never-seen, validation, 2,000 steps). One rate for all arms: the highest mean validation accuracy over A, B and C, averaged over the last 500 steps. Check 1: report any arm whose own best rate beats the shared one by more than 2 points. Check 2: if any arm still gains more than 1 point in the last 500 steps, double the budget.</p>
+<figure>
+<div class="chart"><h5>Validation accuracy averaged over steps 1,500–2,000, per learning rate</h5><div id="c-cal3"></div></div>
+<figcaption><b>1×10⁻⁴ has the best mean over the three arms</b>, narrowly ahead of 3×10⁻⁴. Each dot is one arm (seed 1); the tick is the mean of the three. Hover for values.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Rate</th><th class="r">Mean, single point at step 2,000</th><th class="r">Mean, average of steps 1,500–2,000</th></tr></thead>
+<tbody>
+<tr><td>3×10⁻⁵</td><td class="r">72.11%</td><td class="r">71.99%</td></tr>
+<tr><td><b>1×10⁻⁴</b></td><td class="r"><b>73.87%</b></td><td class="r"><b>74.07%</b></td></tr>
+<tr><td>3×10⁻⁴</td><td class="r">73.75%</td><td class="r">73.93%</td></tr>
+<tr><td>1×10⁻³</td><td class="r">69.50%</td><td class="r">69.34%</td></tr>
+</tbody></table></div>
+<p>Both readings choose <b>1×10⁻⁴</b>, which is not at the edge of the range.</p>
+<ul>
+<li><b>Check 1:</b> A and C are best at 1×10⁻⁴. B is best at 3×10⁻⁴, only 0.56 points higher. No arm is disadvantaged (unlike ResNet-18, where B was 4.6 points below its best).</li>
+<li><b>Check 2:</b> gain over the last 500 steps at 1×10⁻⁴ (mean of steps 1,500–2,000 minus mean of 1,000–1,400, the ResNet-18 definition): A +0.2, B <b>+1.5</b>, C +0.6. B still gains more than 1 point, so the budget was doubled to <b>4,000 steps</b>. With a constant rate, the first 2,000 steps of a 4,000-step run are the same run, so a comparison with ResNet-18 at 2,000 steps stays possible.</li>
+</ul>
+<h3>Settings that were not calibrated</h3>
+<p>AdamW's betas and weight decay, gradient clipping, RandAugment (2, 9), the warmup lengths and the batch size follow common recipes for training small ViTs from scratch, and are identical for every arm. Stage 1 is 200 epochs, the same as ResNet-18, so both backbones get the same number of passes.</p>
+
+<!-- ============================================================ 8 -->
+<h2 id="runs"><span class="n">08</span>Running it</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Item</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Hardware</td><td>Shared lab server, NVIDIA RTX PRO 6000 Blackwell, limited to 33% of GPU memory (lab rule). PyTorch 2.15.0. Same machine as the ResNet-18 runs.</td></tr>
+<tr><td>Code</td><td>The ResNet-18 code with <code>--arch vit</code>: <code>run_stage1.py</code> → <code>probe.py</code> → <code>run_stage2.py</code> → <code>run_stage3.py</code> → <code>metrics.py</code>. ViT settings in <code>configs/vit/</code>, outputs in <code>checkpoints/vit/</code> and <code>logs/vit/</code>. ResNet-18 results were re-checked bit-identical after the ViT code was added.</td></tr>
+<tr><td>Time per run (alone on the GPU)</td><td>Stage 1 ≈ 27 min (8 s per epoch) · stage 2 ≈ 6.5 min · stage 3 ≈ 2 min. Runs usually shared the GPU two or three at a time.</td></tr>
+<tr><td>Real runs</td><td>6 stage-1 runs (A, C × 3 seeds) · 9 probes after stage 1 / at B's start · 9 stage-2 runs · 18 stage-3 runs (3 arms × 2 subsets × 3 seeds)</td></tr>
+<tr><td>Calibration runs</td><td>Stage 1: 6 full runs (2 rates × 3 seeds) · probe C: 2 ranges · stage 2: 6 rate trials of 20 epochs + 1 length trial · stage 3: 12 runs (4 rates × 3 arms). Plus the archived first attempt at stage-1 rate 1×10⁻³.</td></tr>
+<tr><td>Order</td><td>Stage-1 calibration → stage 1 → probe C → probes → stage-2 calibration → stage 2 → stage-3 calibration → stage 3 → analysis. Each setting was frozen before the runs that use it.</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ 9 -->
+<h2 id="results"><span class="n">09</span>Results</h2>
+
+<h3 id="r-s1">9.1 · Stage 1: learning</h3>
+<figure>
+<div class="chart"><h5>Test accuracy of the training head during stage 1</h5><div id="c-s1"></div></div>
+<figcaption><b>Both arms converge.</b> A reaches 88.3% on CIFAR-10 and C 61.4% on CIFAR-100. Both are lower than ResNet-18 (94.9% and 76.7%): a ViT trained from scratch on 40k small images lacks the built-in assumptions that make CNNs data-efficient.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Arm</th><th class="r">Own task, test (seeds 1/2/3)</th><th class="r">Mean</th><th class="r">CIFAR-10 probe after stage 1 ¹</th></tr></thead>
+<tbody>
+<tr><td><span class="swatch" style="background:var(--a)"></span>A</td><td class="r">CIFAR-10: 88.12 / 88.46 / 88.18</td><td class="r">88.25%</td><td class="r">88.33 ± 0.08% <i>in-domain</i></td></tr>
+<tr><td><span class="swatch" style="background:var(--c)"></span>C</td><td class="r">CIFAR-100: 61.36 / 61.40 / 61.31</td><td class="r">61.36%</td><td class="r">68.96 ± 0.28% <i>transfer</i></td></tr>
+<tr><td><span class="swatch" style="background:var(--b)"></span>B</td><td class="r">–</td><td class="r">–</td><td class="r">32.54 ± 0.10% <i>random weights</i></td></tr>
+</tbody></table></div>
+<p class="num" style="font-size:13.5px;color:var(--ink-2)">¹ Not like-for-like across arms: in-domain (A), transfer (C), untrained (B). Read it as "what each backbone knew about CIFAR-10 before stage 2".</p>
+<p>The starting gaps are close to ResNet-18's: A − C = 19.4 points (ResNet-18: 23.3), C − B = 36.4 (35.7). The probe on A matches A's own test accuracy: the features hold everything the model learned, even read out from only 5,000 images.</p>
+
+<h3 id="r-s2">9.2 · Stage 2: forgetting</h3>
+<figure class="wide">
+<div class="grid3">
+  <div class="chart"><h5>SVHN test accuracy</h5><div id="c-s2-svhn"></div></div>
+  <div class="chart"><h5>Old head on its own test set</h5><div id="c-s2-old"></div></div>
+  <div class="chart"><h5>CIFAR-10 probe</h5><div id="c-s2-probe"></div></div>
+</div>
+<figcaption><b>Fast drop, then flat.</b> The old heads fall within the first few epochs and then level off; A's stays near 29%. The probe drops within the first 1,000 steps and then barely moves. B's probe <i>rises</i>: digit training gives it useful image features. Bands show ± 1 std across seeds.</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Arm</th><th class="r">SVHN test</th><th class="r">Old head (chance)</th><th class="r">CIFAR-10 probe at end = start of relearning</th></tr></thead>
+<tbody>
+<tr><td><span class="swatch" style="background:var(--a)"></span>A</td><td class="r">96.18%</td><td class="r">29.20 ± 1.73% (10%)</td><td class="r"><b>58.49 ± 0.59%</b></td></tr>
+<tr><td><span class="swatch" style="background:var(--c)"></span>C</td><td class="r">95.84%</td><td class="r">13.81 ± 0.29% (1%)</td><td class="r"><b>56.22 ± 1.00%</b></td></tr>
+<tr><td><span class="swatch" style="background:var(--b)"></span>B</td><td class="r">95.65%</td><td class="r">–</td><td class="r"><b>43.78 ± 0.15%</b></td></tr>
+</tbody></table></div>
+<p>By the old head, A looks largely forgotten, though less than ResNet-18's A (18.8%). By the probe, A still holds more readable CIFAR-10 information than C (+2.3 points) and B (+14.7 points). Only 12% of the A − C gap from before stage 2 is still visible to the probe (ResNet-18: 13%), but 34% of the C − B gap (ResNet-18: 15%): the ViT keeps much more <i>general</i> photo knowledge through SVHN.</p>
+
+<h3 id="r-s3">9.3 · Stage 3: relearning (the main result)</h3>
+<figure class="wide">
+<div class="chart"><h5>Relearning CIFAR-10 from the never-seen 5k (test accuracy, smoothed)</h5><div id="c-s3-ns"></div></div>
+<figcaption><b>A ends 7.8 points above C and 11.3 above B, pulling away from C after about step 150.</b> All arms start near 10% because the new head is random. End labels give the final accuracy (mean of the last 500 steps).</figcaption>
+</figure>
+<figure class="wide">
+<div class="grid2">
+  <div class="chart"><h5>First 500 steps (never-seen)</h5><div id="c-s3-zoom"></div></div>
+  <div class="chart"><h5>Relearning from the A-seen 5k</h5><div id="c-s3-as"></div></div>
+</div>
+<figcaption><b>Left:</b> A and C are level for the first ~100 steps (C 45.0%, A 44.5% at step 100), then A pulls ahead. <b>Right:</b> on the photos A trained on, A ends 2 points higher than on never-seen photos; B and C do not (section 9.6).</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Never-seen</th><th class="r">Final</th><th class="r">AUC</th><th class="r">To 50%</th><th class="r">To 70%</th><th class="r">To 80%</th><th class="r">Gain after 50%</th></tr></thead>
+<tbody>
+<tr><td><span class="swatch" style="background:var(--a)"></span>A</td><td class="r"><b>80.79 ± 0.69</b></td><td class="r"><b>78.12 ± 0.52</b></td><td class="r"><b>125</b></td><td class="r"><b>250</b></td><td class="r"><b>1,467</b> (3/3 seeds)</td><td class="r"><b>+22.5 ± 0.7</b></td></tr>
+<tr><td><span class="swatch" style="background:var(--c)"></span>C</td><td class="r">72.99 ± 0.08</td><td class="r">71.19 ± 0.24</td><td class="r"><b>125</b></td><td class="r">433</td><td class="r">never</td><td class="r">+16.5 ± 0.9</td></tr>
+<tr><td><span class="swatch" style="background:var(--b)"></span>B</td><td class="r">69.51 ± 0.32</td><td class="r">65.51 ± 0.47</td><td class="r">225</td><td class="r">3,700 (1/3)</td><td class="r">never</td><td class="r">+10.9 ± 2.2</td></tr>
+</tbody></table></div>
+<p>On the A-seen subset: A 82.78 ± 0.30, C 73.16 ± 0.55, B 69.78 ± 0.29 (final accuracy). After the first 2,000 steps (ResNet-18's budget), A − C was already 7.4 ± 0.5; the extra 2,000 steps added mainly to B.</p>
+
+<h3 id="r-stats">9.4 · Are the gaps real?</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Difference (never-seen)</th><th class="r">Seed 1</th><th class="r">Seed 2</th><th class="r">Seed 3</th><th class="r">Mean ± std</th><th class="r">Paired t, p</th></tr></thead>
+<tbody>
+<tr><th colspan="6">Final accuracy</th></tr>
+<tr><td>A − C</td><td class="r">8.65</td><td class="r">7.59</td><td class="r">7.17</td><td class="r"><b>7.80 ± 0.76</b></td><td class="r">0.003</td></tr>
+<tr><td>A − B</td><td class="r">11.94</td><td class="r">10.82</td><td class="r">11.09</td><td class="r"><b>11.28 ± 0.58</b></td><td class="r">0.0009</td></tr>
+<tr><td>C − B</td><td class="r">3.29</td><td class="r">3.23</td><td class="r">3.92</td><td class="r"><b>3.48 ± 0.38</b></td><td class="r">0.004</td></tr>
+<tr><th colspan="6">Average over the run (AUC)</th></tr>
+<tr><td>A − C</td><td class="r">7.73</td><td class="r">6.48</td><td class="r">6.58</td><td class="r"><b>6.93 ± 0.69</b></td><td class="r">0.003</td></tr>
+<tr><td>A − B</td><td class="r">12.84</td><td class="r">12.25</td><td class="r">12.76</td><td class="r"><b>12.62 ± 0.32</b></td><td class="r">0.0002</td></tr>
+</tbody></table></div>
+<p><b>Every difference has the same sign in all three seeds</b>, and the final A − C gap is about 10 times its spread. Three seeds are enough for the main claim.</p>
+<figure><div class="diagram"><svg viewBox="0 0 780 120" role="img" aria-label="A's 11.3-point lead over B splits into 3.5 points of general photo skill (C minus B) and 7.8 points of CIFAR-10-specific knowledge (A minus C).">
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" fill="currentColor">
+    <text x="10" y="18" font-size="12" font-weight="600">A's lead over B, final accuracy (percentage points, to scale)</text>
+    <rect x="10" y="32" width="145" height="40" rx="4" style="fill:var(--c)" fill-opacity=".8"/>
+    <rect x="157" y="32" width="324" height="40" rx="4" style="fill:var(--a)" fill-opacity=".85"/>
+    <text x="82" y="57" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">3.5 · C − B</text>
+    <text x="319" y="57" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">7.8 · A − C</text>
+    <text x="489" y="57" font-size="13" font-weight="600">= 11.3</text>
+    <text x="10" y="94" font-size="11.5">general photo skill</text><text x="10" y="109" font-size="11" opacity=".7">any photo pretraining</text>
+    <text x="200" y="94" font-size="11.5">CIFAR-10-specific knowledge</text><text x="200" y="109" font-size="11" opacity=".7">what A kept from learning this task</text>
+  </g>
+</svg></div><figcaption><b>Two kinds of leftover knowledge.</b> C − B is what any photo pretraining gives; A − C is what is specific to having learned CIFAR-10. For the ViT the specific part is the larger one; for ResNet-18 it was the general part (9.6 vs 7.2).</figcaption></figure>
+
+<h3 id="r-headstart">9.5 · Head start, or faster relearning?</h3>
+<div class="plain"><b>In plain words</b>
+<p>A started relearning slightly ahead (its probe was 2.3 points above C's). Is A better only because it started ahead, or does it also learn faster? As with ResNet-18, the answer is: both, and here the "faster" part is larger.</p></div>
+<figure>
+<div class="chart"><h5>Where each arm started (probe) and how much it gained during relearning</h5><div id="c-decomp"></div></div>
+<figcaption><b>Of A's 7.8-point lead over C, about 2.3 was there at the start and about 5.5 was gained during relearning.</b> Light segment: probe at the start of relearning; solid: gain to the final accuracy (never-seen).</figcaption>
+</figure>
+<div class="tablewrap"><table>
+<thead><tr><th>Gain over starting probe</th><th class="r">Seed 1</th><th class="r">Seed 2</th><th class="r">Seed 3</th><th class="r">Mean ± std</th><th class="r">Paired t, p</th></tr></thead>
+<tbody>
+<tr><td>A</td><td class="r">23.75</td><td class="r">21.82</td><td class="r">21.34</td><td class="r">22.30 ± 1.28</td><td class="r"></td></tr>
+<tr><td>C</td><td class="r">17.57</td><td class="r">16.98</td><td class="r">15.75</td><td class="r">16.77 ± 0.93</td><td class="r"></td></tr>
+<tr><td>B</td><td class="r">25.73</td><td class="r">25.92</td><td class="r">25.54</td><td class="r">25.73 ± 0.19</td><td class="r"></td></tr>
+<tr><td><b>A − C</b></td><td class="r">6.18</td><td class="r">4.84</td><td class="r">5.59</td><td class="r"><b>5.54 ± 0.67</b></td><td class="r">0.005</td></tr>
+<tr><td><b>A − B</b></td><td class="r">−1.98</td><td class="r">−4.10</td><td class="r">−4.20</td><td class="r"><b>−3.43 ± 1.25</b></td><td class="r">0.04</td></tr>
+</tbody></table></div>
+<figure>
+<div class="chart"><h5>Curves lined up at the step each run first reaches 50% (never-seen)</h5><div id="c-aligned"></div></div>
+<figcaption><b>From the same 50% starting point, A climbs fastest.</b> It gains 22.5 points in the next 500 steps, against 16.5 for C and 10.9 for B. Lining the curves up removes any head start.</figcaption>
+</figure>
+<ul>
+<li><b>At the very start, A and C are level:</b> both reach 50% at step 125 in every seed; C is marginally ahead at step 100.</li>
+<li><b>From about step 150, A is faster:</b> 70% at step 250 vs 433 for C, and only A reaches 80%.</li>
+<li><b>B gains the most in total (25.7 points)</b> because it starts lowest; its total gain beats A's. The aligned curves are the fair speed comparison, and there B is slowest.</li>
+<li><b>The extra gain A − C (5.5 ± 0.7) is clearer than with ResNet-18 (4.2 ± 1.4):</b> positive in every seed with a spread about an eighth of its size.</li>
+</ul>
+
+<h3 id="r-memory">9.6 · Does A remember the exact photos?</h3>
+<p>If A remembered specific images, relearning on the A-seen photos would help A more than relearning on never-seen photos, while for B and C both sets are equally new.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Final accuracy, A-seen − never-seen</th><th class="r">Seed 1</th><th class="r">Seed 2</th><th class="r">Seed 3</th><th class="r">Mean ± std</th></tr></thead>
+<tbody>
+<tr><td>gap(A)</td><td class="r">1.48</td><td class="r">1.90</td><td class="r">2.59</td><td class="r">1.99</td></tr>
+<tr><td>gap(B)</td><td class="r">0.44</td><td class="r">0.01</td><td class="r">0.37</td><td class="r">0.27</td></tr>
+<tr><td>gap(C)</td><td class="r">−0.19</td><td class="r">−0.01</td><td class="r">0.71</td><td class="r">0.17</td></tr>
+<tr><td><b>Memory effect, gap(A) − gap(C)</b></td><td class="r">1.67</td><td class="r">1.91</td><td class="r">1.88</td><td class="r"><b>1.82 ± 0.13</b></td></tr>
+<tr><td><b>Memory effect, gap(A) − gap(B)</b></td><td class="r">1.04</td><td class="r">1.89</td><td class="r">2.22</td><td class="r"><b>1.72 ± 0.61</b></td></tr>
+</tbody></table></div>
+<p><b>A small, consistent effect.</b> About 1.8 points, positive in every seed and against both controls, while B and C find the two photo sets equally easy. Unlike ResNet-18 (≈ 1 point, opposite signs across seeds), the ViT seems to keep a little memory of the specific photos as well as general CIFAR-10 skill. It is still small, and measured indirectly through relearning.</p>
+
+<h3 id="r-probe">9.7 · Does the probe predict relearning?</h3>
+<figure>
+<div class="chart"><h5>Probe at the start of relearning vs average relearning accuracy (AUC, never-seen)</h5><div id="c-scatter"></div></div>
+<figcaption><b>The probe ranks the arms correctly but does not predict individual runs.</b> A and C are close on the probe (58.5 vs 56.2) but far apart in relearning (78.1 vs 71.2 AUC). Within A, the seed with the best probe (58.9%) had the lowest AUC. The A − C gap more than triples from the probe (2.3) to relearning (7.8): the probe underestimates what can be recovered even more than with ResNet-18 (3.0 → 7.2).</figcaption>
+</figure>
+
+<!-- ============================================================ 10 -->
+<h2 id="meaning"><span class="n">10</span>What it means</h2>
+<div class="plain"><b>In plain words</b>
+<p>A Vision Transformer that seemed to have forgotten CIFAR-10 still had a lot of it hidden inside, just like ResNet-18. Given a little practice, it came back clearly better and faster than a network that had practised on similar photos. The size of that advantage was almost the same for both kinds of network.</p></div>
+<ol>
+<li><b>The main result replicates across architectures.</b> A beats C by 7.8 ± 0.8 points after relearning, in every seed (ResNet-18: 7.2 ± 0.8). At ResNet-18's budget of 2,000 steps the ViT gap is 7.4.</li>
+<li><b>"Forgotten" by the old head is not forgotten.</b> A's old head scored 29%, a fresh linear reader found 58.5%, and relearning reached 80.8%.</li>
+<li><b>Relearning reveals much more than the probe.</b> A − C grows from 2.3 (probe) to 7.8 (relearning). Most of A's surviving CIFAR-10 knowledge is not linearly readable after the overwrite, but training brings it back.</li>
+<li><b>A learns faster, not only from a head start:</b> +5.5 points of extra gain over C, and the fastest climb from a common 50% level.</li>
+<li><b>Different kinds of leftover knowledge.</b> The ViT keeps more general photo knowledge through SVHN (probe C − B 12.4 vs ResNet-18's 5.4), but it helps less in relearning (C − B shrinks to 3.5; ResNet-18's grows to 9.6). The CIFAR-10-specific part (A − C) is what lasts in both.</li>
+<li><b>A small memory of specific photos</b> (~1.8 points, every seed), which ResNet-18 did not show clearly.</li>
+</ol>
+<p><b>Scope of the claim:</b> after 20 SVHN epochs at lr 3×10⁻⁴ (old head 88% → 29%), a 10.7M-parameter ViT that learned CIFAR-10 relearns it from 5,000 images 7.8 points better than an equally trained ViT that learned CIFAR-100 instead.</p>
+
+<!-- ============================================================ 11 -->
+<h2 id="resnet"><span class="n">11</span>Compared with ResNet-18</h2>
+<p>The full side-by-side comparison, with both sets of curves, is on <a href="../comparison/resnet18-vs-vit.html">ResNet-18 vs ViT</a>. The key numbers:</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th class="r">ResNet-18</th><th class="r">ViT</th></tr></thead>
+<tbody>
+<tr><td>Stage 1: A on CIFAR-10 / C on CIFAR-100</td><td class="r">94.9 / 76.7</td><td class="r">88.3 / 61.4</td></tr>
+<tr><td>Stage 2: overwrite length</td><td class="r">4 epochs, lr 0.03 (SGD)</td><td class="r">20 epochs, lr 3×10⁻⁴ (AdamW)</td></tr>
+<tr><td>A's old head after stage 2</td><td class="r">18.8%</td><td class="r">29.2%</td></tr>
+<tr><td>Probe after stage 2: A / C / B</td><td class="r">49.4 / 46.4 / 41.0</td><td class="r">58.5 / 56.2 / 43.8</td></tr>
+<tr><td>Relearning, final: A / C / B</td><td class="r">84.1 / 77.0 / 67.4 (2,000 steps)</td><td class="r">80.8 / 73.0 / 69.5 (4,000 steps)</td></tr>
+<tr><td><b>A − C after relearning</b></td><td class="r"><b>7.2 ± 0.8</b></td><td class="r"><b>7.8 ± 0.8</b> (7.4 at 2,000 steps)</td></tr>
+<tr><td>C − B after relearning</td><td class="r">9.6</td><td class="r">3.5</td></tr>
+<tr><td>A − C: head start + extra gain</td><td class="r">3.0 + 4.2</td><td class="r">2.3 + 5.5</td></tr>
+<tr><td>Memory effect (vs C)</td><td class="r">0.9 ± 2.4 (sign varies)</td><td class="r">1.8 ± 0.1 (every seed)</td></tr>
+</tbody></table></div>
+<p><b>Why the old heads differ.</b> ResNet-18's old head reached 19% after only 4 SVHN epochs; the ViT's stays near 29% even after 20. A likely reason: ResNet-18's <b>BatchNorm</b> layers keep running averages of the data they see, and SVHN replaces those averages, which breaks the old head even where the filters are still useful. The ViT's <b>LayerNorm</b> keeps no such averages. This can be tested directly by re-estimating ResNet-18's BatchNorm statistics on CIFAR-10 after stage 2 and scoring its old head again (section 13). It matters for comparing old-head numbers between the two backbones, and for the question of how much "forgetting" is only a read-out mismatch.</p>
+
+<!-- ============================================================ 12 -->
+<h2 id="limits"><span class="n">12</span>Limitations</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Limitation</th><th>Why it matters</th><th>How to address it</th></tr></thead>
+<tbody>
+<tr><td><b>Rules adapted to the ViT</b></td><td class="why">The old-head rule (≤ 15%) became "lowest old head among rates that pass", after one rate; stage 2 used a known passing length (20) instead of the smallest; the stage-3 budget doubled. All decisions came before any relearning result, but they are choices.</td><td>Reported with their timing (section 7); a stage-2 length sweep would show sensitivity.</td></tr>
+<tr><td><b>Old head not near chance</b></td><td class="why">A's old head is 29%, its probe 58.5% (B 43.8%). "Forgotten" means "looks largely forgotten by the old head".</td><td>BatchNorm check on ResNet-18; longer or harsher overwriting.</td></tr>
+<tr><td><b>Different recipe from ResNet-18</b></td><td class="why">Optimizer, augmentation, warmups and lengths differ, so raw accuracies of the two backbones are not comparable.</td><td>Compare gaps between arms and their relative size, as in section 11.</td></tr>
+<tr><td><b>Only one amount of overwriting</b></td><td class="why">The effect may change with more or less SVHN training.</td><td>Sweep the stage-2 length, reusing the stage-1 checkpoints.</td></tr>
+<tr><td><b>Forgetting set by B, not matched per arm</b></td><td class="why">By the old head, C kept less of its stage-1 accuracy (61.4% → 13.8%) than A (88.3% → 29.2%). The length was set by B's SVHN accuracy, not by matching the arms' forgetting.</td><td>Match arms on the starting probe.</td></tr>
+<tr><td><b>3 seeds</b></td><td class="why">Enough for the main gap, the extra gain and the memory effect here, but t-tests have 2 degrees of freedom.</td><td>Seeds 4–5 (splits already exist).</td></tr>
+<tr><td><b>Linear probe is a lower bound</b></td><td class="why">It misses information that is present but not linearly readable, which is part of why relearning shows more.</td><td>A small non-linear probe.</td></tr>
+<tr><td><b>One ViT size, small images</b></td><td class="why">10.7M parameters, 32×32 images, trained from scratch. Larger or pretrained ViTs may behave differently.</td><td>Other sizes; other datasets.</td></tr>
+<tr><td><b>Memory test is indirect</b></td><td class="why">Measured through relearning curves.</td><td>Score per-image loss on A-seen vs never-seen right after stage 2.</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ 13 -->
+<h2 id="next"><span class="n">13</span>Open questions and next experiments</h2>
+<ol>
+<li><b>The BatchNorm check:</b> re-estimate ResNet-18's BatchNorm statistics on CIFAR-10 at A's stage-2 checkpoint and score the old head. If it jumps back, a large part of ResNet-18's "forgetting" is a statistics mismatch, which would explain the difference to the ViT. Minutes of compute, no training.</li>
+<li><b>Where is the knowledge kept?</b> Probe every transformer block (and every ResNet stage) at the stage-2 checkpoints, for A, B and C.</li>
+<li><b>How much overwriting erases it?</b> Sweep the stage-2 length and plot the A − C relearning gap.</li>
+<li><b>Does the dataset matter?</b> Change the overwrite dataset, from close to far from CIFAR-10, and measure how similar each one is (gradient and representation overlap).</li>
+<li><b>Direct memory test</b> of the A-seen photos right after stage 2.</li>
+</ol>
+
+<!-- ============================================================ 14 -->
+<h2 id="glossary"><span class="n">14</span>Glossary</h2>
+<dl class="gloss">
+<dt>Backbone</dt><dd>The large shared part of the network that turns an image into features (384 for this ViT).</dd>
+<dt>Head</dt><dd>A small linear layer on top of the backbone that turns features into class scores. One per task.</dd>
+<dt>Vision Transformer (ViT)</dt><dd>A network that cuts an image into patches and lets every patch attend to every other patch, instead of sliding filters over it.</dd>
+<dt>Patch, token</dt><dd>A 4×4-pixel square of the image, turned into a list of 384 numbers. The network processes 64 patch tokens plus one class token.</dd>
+<dt>Class token</dt><dd>An extra learned token that gathers information from all patches; its final 384 numbers are the image's features.</dd>
+<dt>Attention</dt><dd>Each token computes how relevant every other token is, and takes a weighted mix of their information.</dd>
+<dt>Transformer block</dt><dd>Attention followed by a small two-layer network, each with LayerNorm and a skip connection. This ViT has 6.</dd>
+<dt>LayerNorm vs BatchNorm</dt><dd>Both rescale numbers inside the network. BatchNorm uses running averages over the training data; LayerNorm uses only the current image.</dd>
+<dt>AdamW</dt><dd>An optimizer that adapts the step size for every weight, with weight decay applied separately.</dd>
+<dt>Warmup, cosine schedule</dt><dd>Warmup raises the learning rate from near zero over the first steps; cosine lowers it smoothly to zero.</dd>
+<dt>Gradient clipping</dt><dd>Limits the size of one update, to avoid sudden jumps.</dd>
+<dt>RandAugment</dt><dd>Applies random image operations (rotate, shear, contrast, …) to every training image.</dd>
+<dt>Arm, seed</dt><dd>An arm is one version of the experiment (A, B or C). A seed is the starting number for all randomness.</dd>
+<dt>Linear probe, C</dt><dd>A logistic-regression classifier fitted on frozen features. C is its inverse regularization strength.</dd>
+<dt>Calibration</dt><dd>Choosing settings with trial runs on validation data, using a rule fixed in advance.</dd>
+<dt>AUC</dt><dd>Here: average accuracy over the whole relearning curve.</dd>
+</dl>
+
+<hr>
+<footer>Generated from the run logs in <code>cl-relearning/logs/vit/</code> (seeds 1–3, calibration on seed 1). Analysis code: <code>src/metrics.py</code>. Settings, rules and their history: <code>configs/vit/*.yaml</code>. Other pages: <a href="vit-summary.html">ViT summary</a> · <a href="../comparison/resnet18-vs-vit.html">ResNet-18 vs ViT</a> · <a href="../resnet18/resnet18-report.html">ResNet-18 report</a> · <a href="../index.html">all pages</a>.</footer>
+</main>
+
+</div>
+
+<script>
+const D = {"s1":{"A":[[0.0,0.0906,0.0084],[1.0,0.3317,0.0023],[2.0,0.4131,0.0156],[3.0,0.457,0.0223],[4.0,0.4984,0.0102],[5.0,0.5257,0.0183],[6.0,0.5427,0.0094],[7.0,0.5661,0.0039],[8.0,0.5742,0.0106],[9.0,0.568,0.0013],[10.0,0.6065,0.0052],[11.0,0.599,0.0157],[12.0,0.6193,0.0086],[13.0,0.6282,0.0063],[14.0,0.6387,0.0233],[15.0,0.6612,0.0101],[16.0,0.6712,0.0084],[17.0,0.6855,0.0143],[18.0,0.699,0.0096],[19.0,0.703,0.0057],[20.0,0.7128,0.014],[21.0,0.7095,0.0166],[22.0,0.734,0.0027],[23.0,0.7381,0.0107],[24.0,0.7414,0.0083],[25.0,0.7502,0.0026],[26.0,0.7599,0.0063],[27.0,0.7553,0.0167],[28.0,0.7722,0.0069],[29.0,0.7752,0.0191],[30.0,0.7777,0.0061],[31.0,0.7812,0.0085],[32.0,0.7852,0.0044],[33.0,0.7891,0.0042],[34.0,0.7956,0.0026],[35.0,0.7899,0.0132],[36.0,0.8015,0.0026],[37.0,0.7986,0.0056],[38.0,0.8058,0.0006],[39.0,0.8082,0.0047],[40.0,0.8084,0.0014],[41.0,0.8125,0.0065],[42.0,0.8126,0.0022],[43.0,0.8166,0.0014],[44.0,0.8185,0.0074],[45.0,0.8225,0.01],[46.0,0.8197,0.0006],[47.0,0.8235,0.003],[48.0,0.8252,0.0069],[49.0,0.8252,0.0073],[50.0,0.8231,0.0078],[51.0,0.8307,0.0048],[52.0,0.8293,0.0073],[53.0,0.8336,0.0018],[54.0,0.8263,0.0032],[55.0,0.8353,0.0035],[56.0,0.8332,0.0017],[57.0,0.8279,0.0062],[58.0,0.8333,0.0024],[59.0,0.8367,0.0011],[60.0,0.8383,0.001],[61.0,0.8399,0.002],[62.0,0.8382,0.0087],[63.0,0.835,0.0071],[64.0,0.8358,0.0049],[65.0,0.8347,0.0031],[66.0,0.8398,0.0046],[67.0,0.8431,0.0043],[68.0,0.8407,0.002],[69.0,0.8391,0.0057],[70.0,0.8366,0.0022],[71.0,0.8377,0.0014],[72.0,0.8392,0.0073],[73.0,0.839,0.0036],[74.0,0.8467,0.0036],[75.0,0.8429,0.0055],[76.0,0.8445,0.0045],[77.0,0.8433,0.0033],[78.0,0.8493,0.0029],[79.0,0.8463,0.0017],[80.0,0.8487,0.0017],[81.0,0.8428,0.0053],[82.0,0.8414,0.0039],[83.0,0.8502,0.0024],[84.0,0.8489,0.0005],[85.0,0.8461,0.0046],[86.0,0.8481,0.0056],[87.0,0.8512,0.003],[88.0,0.8517,0.002],[89.0,0.8467,0.004],[90.0,0.8502,0.0057],[91.0,0.8513,0.0025],[92.0,0.8526,0.0041],[93.0,0.8483,0.003],[94.0,0.8532,0.0079],[95.0,0.8548,0.0006],[96.0,0.8526,0.0027],[97.0,0.8506,0.0071],[98.0,0.8548,0.0028],[99.0,0.853,0.0032],[100.0,0.8537,0.0006],[101.0,0.8556,0.0001],[102.0,0.8553,0.0043],[103.0,0.8558,0.0057],[104.0,0.8571,0.0053],[105.0,0.8563,0.0017],[106.0,0.8557,0.0058],[107.0,0.8567,0.0038],[108.0,0.8581,0.0006],[109.0,0.8539,0.0024],[110.0,0.8555,0.003],[111.0,0.8548,0.0023],[112.0,0.8527,0.0027],[113.0,0.8561,0.0019],[114.0,0.8574,0.004],[115.0,0.86,0.0014],[116.0,0.8629,0.0022],[117.0,0.8608,0.0016],[118.0,0.8597,0.0017],[119.0,0.8569,0.003],[120.0,0.8591,0.0027],[121.0,0.8604,0.0023],[122.0,0.8607,0.0055],[123.0,0.8628,0.001],[124.0,0.8617,0.0021],[125.0,0.8618,0.0047],[126.0,0.8625,0.0016],[127.0,0.8625,0.0015],[128.0,0.8613,0.0031],[129.0,0.8643,0.0008],[130.0,0.8641,0.0021],[131.0,0.8638,0.0026],[132.0,0.8663,0.002],[133.0,0.8626,0.0018],[134.0,0.8644,0.0014],[135.0,0.8649,0.0018],[136.0,0.868,0.0007],[137.0,0.8683,0.0021],[138.0,0.8682,0.0023],[139.0,0.8693,0.0006],[140.0,0.8682,0.003],[141.0,0.8708,0.0043],[142.0,0.8714,0.0022],[143.0,0.8685,0.0023],[144.0,0.8711,0.0007],[145.0,0.8708,0.0005],[146.0,0.8721,0.0009],[147.0,0.8719,0.0021],[148.0,0.872,0.0014],[149.0,0.8696,0.0013],[150.0,0.8711,0.0013],[151.0,0.8717,0.0024],[152.0,0.8712,0.0015],[153.0,0.8726,0.0006],[154.0,0.873,0.0016],[155.0,0.8734,0.0009],[156.0,0.8749,0.003],[157.0,0.8753,0.0019],[158.0,0.8757,0.0016],[159.0,0.8737,0.0014],[160.0,0.875,0.0015],[161.0,0.8764,0.0023],[162.0,0.8753,0.0003],[163.0,0.8749,0.0006],[164.0,0.877,0.0029],[165.0,0.8781,0.0008],[166.0,0.8776,0.0007],[167.0,0.8772,0.0009],[168.0,0.8779,0.0021],[169.0,0.8775,0.0028],[170.0,0.8768,0.0021],[171.0,0.8782,0.0014],[172.0,0.8798,0.0019],[173.0,0.8804,0.0017],[174.0,0.8808,0.0022],[175.0,0.8802,0.001],[176.0,0.8799,0.0007],[177.0,0.8815,0.0017],[178.0,0.8807,0.0019],[179.0,0.8812,0.0006],[180.0,0.8812,0.0012],[181.0,0.8813,0.0021],[182.0,0.8813,0.0011],[183.0,0.8814,0.0026],[184.0,0.8816,0.0031],[185.0,0.881,0.0021],[186.0,0.8813,0.0017],[187.0,0.8816,0.0022],[188.0,0.8817,0.0008],[189.0,0.882,0.001],[190.0,0.8821,0.0017],[191.0,0.8821,0.0013],[192.0,0.8817,0.0017],[193.0,0.882,0.0013],[194.0,0.8826,0.0018],[195.0,0.8826,0.0013],[196.0,0.8828,0.0013],[197.0,0.8827,0.0016],[198.0,0.8826,0.0019],[199.0,0.8825,0.0019],[200.0,0.8825,0.0018]],"C":[[0.0,0.0093,0.0024],[1.0,0.0905,0.0049],[2.0,0.1354,0.0065],[3.0,0.1746,0.0037],[4.0,0.2136,0.0016],[5.0,0.2365,0.0018],[6.0,0.2624,0.0179],[7.0,0.2802,0.0109],[8.0,0.3083,0.0112],[9.0,0.3163,0.0136],[10.0,0.329,0.0111],[11.0,0.3525,0.0057],[12.0,0.3737,0.0038],[13.0,0.3893,0.0068],[14.0,0.4091,0.0084],[15.0,0.4209,0.0055],[16.0,0.4363,0.0026],[17.0,0.4531,0.0033],[18.0,0.4635,0.003],[19.0,0.4767,0.0042],[20.0,0.4954,0.0082],[21.0,0.5033,0.0041],[22.0,0.5121,0.0063],[23.0,0.5164,0.0039],[24.0,0.5265,0.0034],[25.0,0.5298,0.0051],[26.0,0.5335,0.0062],[27.0,0.5387,0.003],[28.0,0.5342,0.0044],[29.0,0.5451,0.0053],[30.0,0.5515,0.0032],[31.0,0.5502,0.004],[32.0,0.5447,0.0013],[33.0,0.5507,0.0013],[34.0,0.5477,0.0056],[35.0,0.5474,0.0101],[36.0,0.5559,0.0035],[37.0,0.5571,0.0037],[38.0,0.5526,0.0064],[39.0,0.5548,0.0033],[40.0,0.5561,0.0042],[41.0,0.5594,0.0046],[42.0,0.5557,0.0036],[43.0,0.5575,0.0023],[44.0,0.5569,0.0028],[45.0,0.5568,0.0035],[46.0,0.5591,0.0045],[47.0,0.5572,0.0022],[48.0,0.5599,0.0023],[49.0,0.5542,0.0069],[50.0,0.562,0.0059],[51.0,0.5587,0.0071],[52.0,0.5577,0.0048],[53.0,0.556,0.0036],[54.0,0.5637,0.007],[55.0,0.5596,0.0013],[56.0,0.5626,0.0117],[57.0,0.5609,0.0032],[58.0,0.5577,0.0099],[59.0,0.5596,0.0035],[60.0,0.5644,0.0033],[61.0,0.5571,0.0089],[62.0,0.5618,0.0078],[63.0,0.5672,0.0012],[64.0,0.5711,0.0021],[65.0,0.561,0.0021],[66.0,0.5649,0.0095],[67.0,0.5641,0.0032],[68.0,0.5683,0.0085],[69.0,0.5674,0.0098],[70.0,0.5594,0.0058],[71.0,0.5633,0.0062],[72.0,0.5686,0.0044],[73.0,0.5685,0.0112],[74.0,0.5721,0.0078],[75.0,0.5726,0.0035],[76.0,0.5685,0.0006],[77.0,0.571,0.0025],[78.0,0.5698,0.004],[79.0,0.5691,0.0044],[80.0,0.5745,0.0061],[81.0,0.5687,0.0028],[82.0,0.5682,0.0043],[83.0,0.5699,0.0027],[84.0,0.567,0.0051],[85.0,0.5739,0.0058],[86.0,0.5702,0.005],[87.0,0.5688,0.0074],[88.0,0.5681,0.0023],[89.0,0.5762,0.0044],[90.0,0.5723,0.0021],[91.0,0.5731,0.0059],[92.0,0.5727,0.0052],[93.0,0.5725,0.004],[94.0,0.5739,0.0086],[95.0,0.5743,0.0057],[96.0,0.5769,0.0024],[97.0,0.574,0.0069],[98.0,0.5765,0.0025],[99.0,0.574,0.006],[100.0,0.5757,0.0041],[101.0,0.5788,0.0066],[102.0,0.5825,0.0043],[103.0,0.578,0.0064],[104.0,0.5829,0.0008],[105.0,0.5812,0.0014],[106.0,0.5789,0.0023],[107.0,0.5818,0.0031],[108.0,0.58,0.0077],[109.0,0.5805,0.0037],[110.0,0.5807,0.0016],[111.0,0.5798,0.0011],[112.0,0.5791,0.0012],[113.0,0.5822,0.0024],[114.0,0.585,0.0027],[115.0,0.5853,0.0042],[116.0,0.5872,0.0028],[117.0,0.5851,0.0038],[118.0,0.5877,0.0026],[119.0,0.5862,0.005],[120.0,0.587,0.0016],[121.0,0.5836,0.0003],[122.0,0.5875,0.0044],[123.0,0.5913,0.001],[124.0,0.5887,0.0017],[125.0,0.5888,0.0072],[126.0,0.5873,0.0066],[127.0,0.5908,0.0044],[128.0,0.5927,0.0034],[129.0,0.5932,0.0033],[130.0,0.5915,0.0025],[131.0,0.5941,0.0005],[132.0,0.588,0.0047],[133.0,0.5894,0.0025],[134.0,0.5914,0.0044],[135.0,0.5936,0.004],[136.0,0.5902,0.0037],[137.0,0.5937,0.0032],[138.0,0.5908,0.0017],[139.0,0.5933,0.0028],[140.0,0.5942,0.0065],[141.0,0.5944,0.0036],[142.0,0.5944,0.0064],[143.0,0.5947,0.0017],[144.0,0.5949,0.0034],[145.0,0.5944,0.0029],[146.0,0.599,0.0024],[147.0,0.5971,0.002],[148.0,0.5997,0.0021],[149.0,0.5975,0.0025],[150.0,0.5971,0.001],[151.0,0.5991,0.0031],[152.0,0.5975,0.0065],[153.0,0.598,0.0015],[154.0,0.5994,0.0047],[155.0,0.6014,0.0027],[156.0,0.603,0.0045],[157.0,0.6031,0.0039],[158.0,0.604,0.0024],[159.0,0.6038,0.003],[160.0,0.6031,0.001],[161.0,0.6032,0.0023],[162.0,0.604,0.0029],[163.0,0.6051,0.0018],[164.0,0.607,0.0025],[165.0,0.6039,0.0032],[166.0,0.6037,0.0033],[167.0,0.6061,0.0042],[168.0,0.606,0.003],[169.0,0.6068,0.0036],[170.0,0.608,0.0022],[171.0,0.6066,0.0017],[172.0,0.6083,0.0031],[173.0,0.6069,0.0023],[174.0,0.6078,0.004],[175.0,0.6084,0.0024],[176.0,0.6092,0.0006],[177.0,0.6083,0.0011],[178.0,0.6091,0.0019],[179.0,0.6109,0.0017],[180.0,0.6098,0.0013],[181.0,0.6113,0.0023],[182.0,0.611,0.001],[183.0,0.6115,0.0013],[184.0,0.6108,0.0003],[185.0,0.6113,0.0013],[186.0,0.611,0.0005],[187.0,0.6112,0.002],[188.0,0.6132,0.0004],[189.0,0.6121,0.0005],[190.0,0.613,0.0005],[191.0,0.6137,0.0009],[192.0,0.6136,0.0009],[193.0,0.6135,0.0006],[194.0,0.6135,0.0007],[195.0,0.6134,0.0003],[196.0,0.6136,0.0007],[197.0,0.6135,0.0007],[198.0,0.6135,0.0004],[199.0,0.6136,0.0005],[200.0,0.6136,0.0005]]},"s2":{"A":{"svhn_acc":[[0,0.113,0.0235],[250,0.7908,0.0133],[500,0.8674,0.0064],[750,0.8807,0.0011],[1000,0.9054,0.0037],[1250,0.9097,0.004],[1500,0.9183,0.0038],[1750,0.922,0.0064],[2000,0.9255,0.0023],[2250,0.9306,0.0023],[2500,0.9323,0.0023],[2750,0.9363,0.0024],[3000,0.9352,0.0073],[3250,0.9439,0.0021],[3500,0.9436,0.002],[3750,0.9408,0.0049],[4000,0.9472,0.0032],[4250,0.9419,0.0036],[4500,0.9459,0.0044],[4750,0.9503,0.0032],[5000,0.9497,0.0022],[5250,0.9499,0.0026],[5500,0.9487,0.0015],[5750,0.9506,0.0023],[6000,0.9513,0.0005],[6250,0.9518,0.0033],[6500,0.9545,0.0006],[6750,0.9565,0.0012],[7000,0.9553,0.0016],[7250,0.9592,0.0025],[7500,0.9583,0.0025],[7750,0.9573,0.0009],[8000,0.9581,0.0021],[8250,0.9599,0.0022],[8500,0.9604,0.0009],[8750,0.9604,0.0011],[9000,0.9607,0.0019],[9250,0.9608,0.0008],[9500,0.9615,0.0007],[9750,0.9601,0.0017],[10000,0.9614,0.0016],[10250,0.9613,0.0006],[10500,0.9618,0.0011],[10750,0.9616,0.0009],[11000,0.9618,0.001],[11250,0.9618,0.001],[11460,0.9618,0.001]],"old_acc":[[0,0.8825,0.0018],[250,0.7077,0.0298],[500,0.5724,0.024],[750,0.4975,0.0396],[1000,0.4435,0.0138],[1250,0.442,0.0392],[1500,0.3668,0.0118],[1750,0.3697,0.0397],[2000,0.377,0.0134],[2250,0.3365,0.0261],[2500,0.3498,0.0088],[2750,0.331,0.0248],[3000,0.34,0.0382],[3250,0.3297,0.0314],[3500,0.3255,0.0425],[3750,0.3195,0.0252],[4000,0.3058,0.0495],[4250,0.3239,0.0292],[4500,0.32,0.0163],[4750,0.3152,0.0452],[5000,0.315,0.0066],[5250,0.3066,0.0276],[5500,0.3074,0.0401],[5750,0.2846,0.041],[6000,0.3019,0.0193],[6250,0.3136,0.0216],[6500,0.2965,0.0267],[6750,0.2974,0.0124],[7000,0.2933,0.0236],[7250,0.2934,0.0301],[7500,0.2891,0.0271],[7750,0.2844,0.0229],[8000,0.2865,0.0317],[8250,0.2914,0.0157],[8500,0.2977,0.0105],[8750,0.2884,0.0229],[9000,0.2951,0.0174],[9250,0.2881,0.0203],[9500,0.298,0.0198],[9750,0.2954,0.017],[10000,0.2876,0.0197],[10250,0.293,0.0176],[10500,0.292,0.0187],[10750,0.2925,0.0169],[11000,0.2918,0.0174],[11250,0.292,0.0173],[11460,0.292,0.0173]],"probe_acc":[[0,0.8833,0.0008],[500,0.6987,0.0101],[1000,0.6468,0.0106],[1500,0.6174,0.0078],[2000,0.6116,0.0037],[2500,0.5985,0.0034],[3000,0.5921,0.0084],[3500,0.5891,0.0106],[4000,0.5922,0.0054],[4500,0.5875,0.0117],[5000,0.5841,0.0125],[5500,0.5892,0.009],[6000,0.5802,0.0034],[6500,0.5784,0.0034],[7000,0.5844,0.0085],[7500,0.5799,0.0017],[8000,0.5872,0.0072],[8500,0.5862,0.0083],[9000,0.5858,0.008],[9500,0.5875,0.0094],[10000,0.5849,0.0069],[10500,0.5854,0.0063],[11000,0.5848,0.0062],[11460,0.5849,0.0059]]},"B":{"svhn_acc":[[0,0.113,0.0327],[250,0.2309,0.0136],[500,0.3963,0.0178],[750,0.4863,0.0034],[1000,0.5236,0.0133],[1250,0.5483,0.0048],[1500,0.5995,0.0144],[1750,0.6667,0.0174],[2000,0.7278,0.0199],[2250,0.7671,0.0133],[2500,0.8042,0.0134],[2750,0.8277,0.0157],[3000,0.8454,0.02],[3250,0.8594,0.0032],[3500,0.8732,0.0063],[3750,0.8753,0.0145],[4000,0.8865,0.0084],[4250,0.895,0.01],[4500,0.9019,0.0054],[4750,0.904,0.0024],[5000,0.9064,0.0054],[5250,0.9209,0.0046],[5500,0.9183,0.0059],[5750,0.9197,0.0031],[6000,0.9242,0.0021],[6250,0.9287,0.0057],[6500,0.9285,0.0057],[6750,0.9369,0.0031],[7000,0.9353,0.0041],[7250,0.9416,0.0024],[7500,0.9439,0.0027],[7750,0.945,0.005],[8000,0.947,0.0026],[8250,0.9453,0.0039],[8500,0.9493,0.0025],[8750,0.9478,0.0016],[9000,0.9513,0.0011],[9250,0.9513,0.0014],[9500,0.9544,0.0015],[9750,0.9547,0.0015],[10000,0.9537,0.0012],[10250,0.9555,0.0013],[10500,0.9556,0.0003],[10750,0.9559,0.0011],[11000,0.9564,0.0008],[11250,0.9565,0.0007],[11460,0.9565,0.0007]],"probe_acc":[[0,0.3254,0.001],[500,0.3655,0.0033],[1000,0.3361,0.0006],[1500,0.3504,0.0082],[2000,0.3541,0.0125],[2500,0.367,0.0078],[3000,0.37,0.004],[3500,0.3774,0.0057],[4000,0.3853,0.0115],[4500,0.3908,0.0037],[5000,0.3982,0.007],[5500,0.3972,0.0067],[6000,0.4109,0.0015],[6500,0.4123,0.0085],[7000,0.4171,0.0016],[7500,0.4212,0.0062],[8000,0.4244,0.0057],[8500,0.4301,0.0032],[9000,0.4361,0.005],[9500,0.4348,0.0026],[10000,0.4362,0.0017],[10500,0.4376,0.0023],[11000,0.4373,0.0009],[11460,0.4378,0.0015]]},"C":{"svhn_acc":[[0,0.1012,0.0248],[250,0.8142,0.0153],[500,0.8673,0.0065],[750,0.8894,0.0062],[1000,0.9018,0.0094],[1250,0.9123,0.0054],[1500,0.9169,0.0015],[1750,0.9197,0.001],[2000,0.9208,0.0034],[2250,0.9326,0.0024],[2500,0.9246,0.0048],[2750,0.9302,0.0037],[3000,0.9336,0.0056],[3250,0.9354,0.0054],[3500,0.9404,0.0057],[3750,0.9373,0.0049],[4000,0.9406,0.0031],[4250,0.9391,0.0042],[4500,0.9447,0.0017],[4750,0.9418,0.0077],[5000,0.9457,0.0009],[5250,0.9447,0.0063],[5500,0.9521,0.0015],[5750,0.9489,0.0067],[6000,0.9485,0.0014],[6250,0.9502,0.0011],[6500,0.9493,0.0034],[6750,0.9536,0.0024],[7000,0.951,0.0022],[7250,0.954,0.0029],[7500,0.9516,0.0021],[7750,0.9556,0.0015],[8000,0.9536,0.0019],[8250,0.9555,0.0014],[8500,0.9565,0.0017],[8750,0.9573,0.0009],[9000,0.9567,0.0021],[9250,0.9569,0.0024],[9500,0.9577,0.0022],[9750,0.9568,0.0007],[10000,0.9577,0.0009],[10250,0.9586,0.001],[10500,0.9587,0.001],[10750,0.9582,0.0014],[11000,0.9584,0.0015],[11250,0.9583,0.0015],[11460,0.9584,0.0015]],"old_acc":[[0,0.6136,0.0005],[250,0.4037,0.0165],[500,0.3009,0.0389],[750,0.2457,0.0053],[1000,0.2127,0.0236],[1250,0.1951,0.01],[1500,0.173,0.0023],[1750,0.1604,0.0093],[2000,0.1651,0.0136],[2250,0.1583,0.0096],[2500,0.1408,0.0115],[2750,0.1473,0.0073],[3000,0.1413,0.0058],[3250,0.1401,0.0045],[3500,0.1412,0.0101],[3750,0.1319,0.0126],[4000,0.1364,0.0106],[4250,0.1301,0.0019],[4500,0.1349,0.0081],[4750,0.1341,0.0154],[5000,0.1307,0.001],[5250,0.1342,0.0039],[5500,0.1315,0.0138],[5750,0.1283,0.0095],[6000,0.1365,0.0033],[6250,0.1343,0.0106],[6500,0.1359,0.0092],[6750,0.1356,0.0148],[7000,0.1346,0.0038],[7250,0.1356,0.0025],[7500,0.1311,0.0118],[7750,0.1372,0.0074],[8000,0.1373,0.0033],[8250,0.1313,0.0066],[8500,0.1373,0.0016],[8750,0.1387,0.0065],[9000,0.1392,0.001],[9250,0.1411,0.0021],[9500,0.1378,0.0016],[9750,0.1364,0.0028],[10000,0.1349,0.0052],[10250,0.1361,0.002],[10500,0.1375,0.0041],[10750,0.1373,0.0026],[11000,0.138,0.0033],[11250,0.138,0.0028],[11460,0.1381,0.0029]],"probe_acc":[[0,0.6896,0.0028],[500,0.6121,0.0056],[1000,0.5919,0.0117],[1500,0.5741,0.01],[2000,0.5689,0.007],[2500,0.5563,0.003],[3000,0.5628,0.006],[3500,0.5597,0.0128],[4000,0.5587,0.008],[4500,0.5504,0.0033],[5000,0.56,0.0002],[5500,0.5582,0.0089],[6000,0.5583,0.0083],[6500,0.5636,0.0081],[7000,0.5604,0.007],[7500,0.5584,0.006],[8000,0.5646,0.0107],[8500,0.562,0.0083],[9000,0.5617,0.0086],[9500,0.5625,0.0109],[10000,0.562,0.0105],[10500,0.5625,0.01],[11000,0.5623,0.0101],[11460,0.5622,0.01]]}},"s3":{"a_seen":{"A":[[0,0.0962,0.0011],[25,0.1131,0.0013],[50,0.1759,0.0058],[75,0.3029,0.0108],[100,0.45,0.0145],[125,0.5598,0.0119],[150,0.6202,0.0108],[175,0.6562,0.0105],[200,0.6807,0.0125],[225,0.7001,0.0125],[250,0.7157,0.0101],[275,0.7267,0.0098],[300,0.7368,0.0071],[325,0.746,0.0057],[350,0.754,0.0049],[375,0.7593,0.0051],[400,0.7648,0.006],[425,0.7695,0.0047],[450,0.7741,0.0041],[475,0.7776,0.0035],[500,0.7808,0.0042],[600,0.7863,0.0057],[700,0.7935,0.0058],[800,0.8006,0.0068],[900,0.8068,0.0047],[1000,0.8109,0.0045],[1100,0.814,0.0029],[1200,0.8151,0.0032],[1300,0.8179,0.0031],[1400,0.8207,0.0021],[1500,0.8229,0.0023],[1600,0.8224,0.0015],[1700,0.8225,0.0019],[1800,0.8227,0.0017],[1900,0.8233,0.0007],[2000,0.8222,0.0017],[2100,0.8232,0.0026],[2200,0.8242,0.0031],[2300,0.826,0.0022],[2400,0.8258,0.0019],[2500,0.8251,0.0027],[2600,0.8249,0.0018],[2700,0.8264,0.0017],[2800,0.8268,0.0011],[2900,0.8275,0.0019],[3000,0.8278,0.0019],[3100,0.8293,0.0044],[3200,0.8308,0.0047],[3300,0.8311,0.0034],[3400,0.8308,0.002],[3500,0.8284,0.0033],[3600,0.829,0.0033],[3700,0.828,0.0036],[3800,0.8286,0.0027],[3900,0.8267,0.0023],[4000,0.8275,0.0027]],"B":[[0,0.0892,0.0027],[25,0.0995,0.0039],[50,0.1448,0.0077],[75,0.2293,0.0095],[100,0.3312,0.0084],[125,0.4041,0.0056],[150,0.4498,0.0099],[175,0.4778,0.0082],[200,0.4978,0.0127],[225,0.5156,0.0147],[250,0.5279,0.0152],[275,0.5429,0.0112],[300,0.5565,0.0129],[325,0.5691,0.0075],[350,0.5752,0.0086],[375,0.5783,0.0074],[400,0.5862,0.0041],[425,0.5947,0.0049],[450,0.6025,0.0022],[475,0.6066,0.003],[500,0.6108,0.0037],[600,0.6165,0.0077],[700,0.6268,0.0098],[800,0.6369,0.0075],[900,0.6463,0.0037],[1000,0.6515,0.0056],[1100,0.6572,0.0068],[1200,0.6625,0.006],[1300,0.667,0.0082],[1400,0.6719,0.0092],[1500,0.6761,0.0086],[1600,0.6782,0.0048],[1700,0.6803,0.0041],[1800,0.6827,0.0047],[1900,0.6859,0.0051],[2000,0.6852,0.0086],[2100,0.6849,0.0075],[2200,0.6848,0.0083],[2300,0.688,0.005],[2400,0.6875,0.0042],[2500,0.688,0.0052],[2600,0.6878,0.0052],[2700,0.6894,0.0052],[2800,0.6912,0.006],[2900,0.6934,0.0044],[3000,0.6951,0.0031],[3100,0.6948,0.0038],[3200,0.6927,0.0022],[3300,0.6933,0.0047],[3400,0.6958,0.0025],[3500,0.6971,0.0039],[3600,0.6975,0.003],[3700,0.6973,0.003],[3800,0.699,0.0029],[3900,0.6971,0.0011],[4000,0.6984,0.0035]],"C":[[0,0.0933,0.004],[25,0.1119,0.0046],[50,0.1768,0.0064],[75,0.3078,0.0065],[100,0.4518,0.0093],[125,0.5525,0.0037],[150,0.6014,0.0027],[175,0.6288,0.0032],[200,0.6481,0.0043],[225,0.6609,0.0029],[250,0.6736,0.0058],[275,0.6796,0.0034],[300,0.6847,0.0035],[325,0.69,0.0038],[350,0.6961,0.0043],[375,0.7032,0.002],[400,0.7059,0.0033],[425,0.7075,0.0032],[450,0.7064,0.0009],[475,0.709,0.0015],[500,0.7109,0.0008],[600,0.7163,0.0008],[700,0.7176,0.0016],[800,0.7203,0.0002],[900,0.7213,0.0017],[1000,0.7235,0.0016],[1100,0.7254,0.0019],[1200,0.7252,0.0013],[1300,0.7252,0.0032],[1400,0.7259,0.0046],[1500,0.7293,0.0041],[1600,0.7306,0.0041],[1700,0.7312,0.0022],[1800,0.731,0.0043],[1900,0.7309,0.0049],[2000,0.7313,0.0046],[2100,0.7295,0.0022],[2200,0.73,0.0024],[2300,0.731,0.0025],[2400,0.7325,0.0035],[2500,0.7329,0.0037],[2600,0.7316,0.0034],[2700,0.7318,0.0046],[2800,0.7319,0.0054],[2900,0.7319,0.0044],[3000,0.7316,0.0048],[3100,0.7324,0.0052],[3200,0.7325,0.0047],[3300,0.7319,0.0021],[3400,0.7322,0.0031],[3500,0.7318,0.0026],[3600,0.7323,0.0058],[3700,0.7317,0.0052],[3800,0.7318,0.0055],[3900,0.7322,0.005],[4000,0.7315,0.0057]]},"never_seen":{"A":[[0,0.0962,0.0011],[25,0.1114,0.0017],[50,0.1719,0.0068],[75,0.2973,0.0106],[100,0.4454,0.0144],[125,0.5554,0.0128],[150,0.6157,0.0153],[175,0.6522,0.0148],[200,0.6745,0.0168],[225,0.6925,0.0148],[250,0.7043,0.0127],[275,0.7184,0.0098],[300,0.7292,0.009],[325,0.738,0.0092],[350,0.7434,0.0061],[375,0.7483,0.0061],[400,0.7545,0.0036],[425,0.759,0.0057],[450,0.7636,0.0051],[475,0.7677,0.006],[500,0.7709,0.0067],[600,0.7767,0.0067],[700,0.7808,0.0056],[800,0.7857,0.004],[900,0.7896,0.0047],[1000,0.793,0.0048],[1100,0.797,0.0057],[1200,0.798,0.0056],[1300,0.7986,0.0063],[1400,0.8,0.0061],[1500,0.801,0.0044],[1600,0.8025,0.0052],[1700,0.8018,0.0017],[1800,0.8023,0.0028],[1900,0.8034,0.0017],[2000,0.8051,0.0048],[2100,0.8047,0.0042],[2200,0.8042,0.0049],[2300,0.8024,0.0046],[2400,0.8017,0.005],[2500,0.8016,0.0043],[2600,0.8029,0.0046],[2700,0.8056,0.0051],[2800,0.8071,0.0043],[2900,0.8079,0.0027],[3000,0.8058,0.0022],[3100,0.8053,0.0031],[3200,0.8042,0.0047],[3300,0.8047,0.0054],[3400,0.8054,0.0052],[3500,0.8061,0.0041],[3600,0.8064,0.0053],[3700,0.806,0.0077],[3800,0.8079,0.0098],[3900,0.8091,0.0087],[4000,0.8098,0.0061]],"B":[[0,0.0892,0.0027],[25,0.0983,0.0038],[50,0.1441,0.0072],[75,0.2266,0.0065],[100,0.3294,0.01],[125,0.3992,0.0179],[150,0.4459,0.022],[175,0.4768,0.0234],[200,0.4923,0.0233],[225,0.5118,0.0191],[250,0.5205,0.0188],[275,0.5428,0.0044],[300,0.5511,0.0046],[325,0.5619,0.0036],[350,0.5693,0.0018],[375,0.5785,0.0079],[400,0.5875,0.0084],[425,0.5937,0.0093],[450,0.5994,0.0076],[475,0.6064,0.0048],[500,0.6129,0.0028],[600,0.6171,0.0058],[700,0.6231,0.01],[800,0.6327,0.0116],[900,0.6431,0.0087],[1000,0.6518,0.0081],[1100,0.6566,0.0047],[1200,0.664,0.0031],[1300,0.6665,0.0071],[1400,0.6696,0.0081],[1500,0.6712,0.0092],[1600,0.6732,0.0081],[1700,0.6761,0.0045],[1800,0.6769,0.0048],[1900,0.681,0.0029],[2000,0.6823,0.0036],[2100,0.6855,0.0027],[2200,0.6861,0.0045],[2300,0.6893,0.004],[2400,0.6917,0.0063],[2500,0.6936,0.0058],[2600,0.6934,0.0067],[2700,0.691,0.0027],[2800,0.6917,0.0023],[2900,0.6914,0.005],[3000,0.6927,0.0062],[3100,0.6926,0.0047],[3200,0.6935,0.0036],[3300,0.694,0.0009],[3400,0.6946,0.002],[3500,0.6973,0.0004],[3600,0.6953,0.003],[3700,0.6956,0.0058],[3800,0.6924,0.0037],[3900,0.6943,0.0038],[4000,0.6947,0.0041]],"C":[[0,0.0933,0.004],[25,0.1105,0.0044],[50,0.175,0.006],[75,0.3033,0.0044],[100,0.4496,0.0033],[125,0.5492,0.0051],[150,0.5993,0.0081],[175,0.6251,0.008],[200,0.6422,0.0085],[225,0.6558,0.0063],[250,0.6646,0.0064],[275,0.6745,0.0033],[300,0.682,0.0047],[325,0.6921,0.003],[350,0.6954,0.0029],[375,0.6972,0.0025],[400,0.6967,0.0017],[425,0.7001,0.0012],[450,0.7032,0.0015],[475,0.7044,0.002],[500,0.7065,0.0034],[600,0.7086,0.0042],[700,0.7144,0.0045],[800,0.7184,0.0055],[900,0.722,0.0035],[1000,0.7225,0.0036],[1100,0.7237,0.0026],[1200,0.7227,0.0044],[1300,0.7232,0.0041],[1400,0.7233,0.0039],[1500,0.7252,0.0036],[1600,0.7267,0.003],[1700,0.727,0.0028],[1800,0.7285,0.002],[1900,0.7299,0.0022],[2000,0.7318,0.0021],[2100,0.733,0.0023],[2200,0.7325,0.0018],[2300,0.7323,0.0029],[2400,0.7308,0.0025],[2500,0.7304,0.0051],[2600,0.7294,0.0041],[2700,0.7292,0.0049],[2800,0.7308,0.003],[2900,0.7318,0.0032],[3000,0.7301,0.0031],[3100,0.729,0.0045],[3200,0.7292,0.0047],[3300,0.731,0.0041],[3400,0.7316,0.0024],[3500,0.7307,0.0023],[3600,0.7302,0.0009],[3700,0.7281,0.0011],[3800,0.7287,0.0007],[3900,0.7295,0.0018],[4000,0.7317,0.0014]]}},"aligned":{"A":[[0,0.5554,0.0128],[25,0.6157,0.0153],[50,0.6522,0.0148],[75,0.6745,0.0168],[100,0.6925,0.0148],[125,0.7043,0.0127],[150,0.7184,0.0098],[175,0.7292,0.009],[200,0.738,0.0092],[225,0.7434,0.0061],[250,0.7483,0.0061],[275,0.7545,0.0036],[300,0.759,0.0057],[325,0.7636,0.0051],[350,0.7677,0.006],[375,0.7709,0.0067],[400,0.7724,0.0067],[425,0.7738,0.0067],[450,0.7753,0.0067],[475,0.7767,0.0067],[500,0.7777,0.0064],[525,0.7787,0.0061],[550,0.7797,0.0058],[575,0.7808,0.0056],[600,0.782,0.005],[625,0.7833,0.0046],[650,0.7845,0.0042],[675,0.7857,0.004],[700,0.7867,0.0042],[725,0.7877,0.0043],[750,0.7886,0.0045],[775,0.7896,0.0047],[800,0.7904,0.0047],[825,0.7913,0.0047],[850,0.7921,0.0048],[875,0.793,0.0048],[900,0.794,0.005],[925,0.795,0.0052],[950,0.796,0.0054],[975,0.797,0.0057],[1000,0.7972,0.0057],[1025,0.7975,0.0057],[1050,0.7977,0.0056],[1075,0.798,0.0056],[1100,0.7981,0.0058],[1125,0.7983,0.006],[1150,0.7984,0.0062],[1175,0.7986,0.0063],[1200,0.7989,0.0063],[1225,0.7993,0.0062],[1250,0.7996,0.0061],[1275,0.8,0.0061],[1300,0.8002,0.0056],[1325,0.8005,0.0052],[1350,0.8007,0.0048],[1375,0.801,0.0044],[1400,0.8014,0.0046],[1425,0.8017,0.0048],[1450,0.8021,0.005],[1475,0.8025,0.0052],[1500,0.8023,0.0043]],"B":[[0,0.5165,0.0191],[25,0.5312,0.0166],[50,0.5423,0.0208],[75,0.5525,0.013],[100,0.5584,0.0116],[125,0.5663,0.0108],[150,0.5747,0.0077],[175,0.5856,0.0072],[200,0.5955,0.0069],[225,0.6032,0.0082],[250,0.6061,0.0069],[275,0.6096,0.0044],[300,0.6132,0.0027],[325,0.6143,0.0033],[350,0.6154,0.0039],[375,0.6166,0.0045],[400,0.6178,0.0052],[425,0.6193,0.0062],[450,0.6212,0.0069],[475,0.6231,0.0077],[500,0.6249,0.0084],[525,0.6273,0.0087],[550,0.6301,0.0087],[575,0.633,0.0086],[600,0.6358,0.0086],[625,0.6384,0.0079],[650,0.6407,0.0073],[675,0.643,0.0068],[700,0.6453,0.0062],[725,0.6475,0.006],[750,0.6496,0.0059],[775,0.6517,0.0057],[800,0.6538,0.0056],[825,0.655,0.0048],[850,0.6562,0.0039],[875,0.6575,0.0031],[900,0.6588,0.0023],[925,0.6607,0.0015],[950,0.6617,0.0012],[975,0.6628,0.002],[1000,0.6639,0.0032],[1025,0.6645,0.0042],[1050,0.6652,0.0051],[1075,0.6659,0.0061],[1100,0.6666,0.007],[1125,0.6674,0.0071],[1150,0.6681,0.0074],[1175,0.6689,0.0077],[1200,0.6697,0.0081],[1225,0.6701,0.0082],[1250,0.6708,0.0078],[1275,0.6716,0.0075],[1300,0.6724,0.0072],[1325,0.6729,0.0068],[1350,0.6735,0.0064],[1375,0.6741,0.0061],[1400,0.6747,0.0061],[1425,0.6754,0.0051],[1450,0.6758,0.0046],[1475,0.6763,0.004],[1500,0.6767,0.0035]],"C":[[0,0.5492,0.0051],[25,0.5993,0.0081],[50,0.6251,0.008],[75,0.6422,0.0085],[100,0.6558,0.0063],[125,0.6646,0.0064],[150,0.6745,0.0033],[175,0.682,0.0047],[200,0.6921,0.003],[225,0.6954,0.0029],[250,0.6972,0.0025],[275,0.6967,0.0017],[300,0.7001,0.0012],[325,0.7032,0.0015],[350,0.7044,0.002],[375,0.7065,0.0034],[400,0.707,0.0034],[425,0.7075,0.0036],[450,0.7081,0.0038],[475,0.7086,0.0042],[500,0.71,0.0039],[525,0.7115,0.0039],[550,0.7129,0.0041],[575,0.7144,0.0045],[600,0.7154,0.0047],[625,0.7164,0.005],[650,0.7174,0.0052],[675,0.7184,0.0055],[700,0.7193,0.005],[725,0.7202,0.0044],[750,0.7211,0.0039],[775,0.722,0.0035],[800,0.7221,0.0035],[825,0.7222,0.0036],[850,0.7224,0.0036],[875,0.7225,0.0036],[900,0.7228,0.0033],[925,0.7231,0.003],[950,0.7234,0.0028],[975,0.7237,0.0026],[1000,0.7235,0.0029],[1025,0.7232,0.0033],[1050,0.723,0.0039],[1075,0.7227,0.0044],[1100,0.7228,0.0043],[1125,0.723,0.0042],[1150,0.7231,0.0041],[1175,0.7232,0.0041],[1200,0.7233,0.004],[1225,0.7233,0.0039],[1250,0.7233,0.0039],[1275,0.7233,0.0039],[1300,0.7238,0.0038],[1325,0.7243,0.0037],[1350,0.7248,0.0036],[1375,0.7252,0.0036],[1400,0.7256,0.0034],[1425,0.726,0.0032],[1450,0.7263,0.0031],[1475,0.7267,0.003],[1500,0.7268,0.003]]},"runs":[{"arm":"A","seed":1,"subset":"a_seen","steps_to_50":125.0,"steps_to_70":225.0,"steps_to_80":800.0,"auc":0.8032,"final_acc":0.8305,"gain_after_50":0.2287},{"arm":"A","seed":1,"subset":"never_seen","steps_to_50":125.0,"steps_to_70":225.0,"steps_to_80":1100.0,"auc":0.7871,"final_acc":0.8157,"gain_after_50":0.2186},{"arm":"A","seed":2,"subset":"a_seen","steps_to_50":125.0,"steps_to_70":250.0,"steps_to_80":800.0,"auc":0.7991,"final_acc":0.8246,"gain_after_50":0.232},{"arm":"A","seed":2,"subset":"never_seen","steps_to_50":125.0,"steps_to_70":250.0,"steps_to_80":1700.0,"auc":0.7793,"final_acc":0.8057,"gain_after_50":0.2244},{"arm":"A","seed":3,"subset":"a_seen","steps_to_50":125.0,"steps_to_70":250.0,"steps_to_80":900.0,"auc":0.7975,"final_acc":0.8282,"gain_after_50":0.2405},{"arm":"A","seed":3,"subset":"never_seen","steps_to_50":125.0,"steps_to_70":275.0,"steps_to_80":1600.0,"auc":0.7773,"final_acc":0.8024,"gain_after_50":0.2331},{"arm":"B","seed":1,"subset":"a_seen","steps_to_50":200.0,"steps_to_70":3500.0,"steps_to_80":null,"auc":0.6613,"final_acc":0.7008,"gain_after_50":0.1232},{"arm":"B","seed":1,"subset":"never_seen","steps_to_50":200.0,"steps_to_70":3700.0,"steps_to_80":null,"auc":0.6587,"final_acc":0.6963,"gain_after_50":0.126},{"arm":"B","seed":2,"subset":"a_seen","steps_to_50":225.0,"steps_to_70":null,"steps_to_80":null,"auc":0.6567,"final_acc":0.6976,"gain_after_50":0.1361},{"arm":"B","seed":2,"subset":"never_seen","steps_to_50":200.0,"steps_to_70":null,"steps_to_80":null,"auc":0.6568,"final_acc":0.6975,"gain_after_50":0.1164},{"arm":"B","seed":3,"subset":"a_seen","steps_to_50":225.0,"steps_to_70":null,"steps_to_80":null,"auc":0.6514,"final_acc":0.6951,"gain_after_50":0.1146},{"arm":"B","seed":3,"subset":"never_seen","steps_to_50":275.0,"steps_to_70":null,"steps_to_80":null,"auc":0.6497,"final_acc":0.6915,"gain_after_50":0.0848},{"arm":"C","seed":1,"subset":"a_seen","steps_to_50":125.0,"steps_to_70":375.0,"steps_to_80":null,"auc":0.711,"final_acc":0.7273,"gain_after_50":0.1676},{"arm":"C","seed":1,"subset":"never_seen","steps_to_50":125.0,"steps_to_70":425.0,"steps_to_80":null,"auc":0.7098,"final_acc":0.7292,"gain_after_50":0.1552},{"arm":"C","seed":2,"subset":"a_seen","steps_to_50":125.0,"steps_to_70":375.0,"steps_to_80":null,"auc":0.7136,"final_acc":0.7296,"gain_after_50":0.1651},{"arm":"C","seed":2,"subset":"never_seen","steps_to_50":125.0,"steps_to_70":425.0,"steps_to_80":null,"auc":0.7145,"final_acc":0.7298,"gain_after_50":0.1715},{"arm":"C","seed":3,"subset":"a_seen","steps_to_50":125.0,"steps_to_70":375.0,"steps_to_80":null,"auc":0.7172,"final_acc":0.7378,"gain_after_50":0.1627},{"arm":"C","seed":3,"subset":"never_seen","steps_to_50":125.0,"steps_to_70":450.0,"steps_to_80":null,"auc":0.7115,"final_acc":0.7307,"gain_after_50":0.169}],"probes_s1":[{"arm":"A","stage":1,"seed":1,"probe_acc":0.8824,"probe_loss":0.3831},{"arm":"B","stage":0,"seed":1,"probe_acc":0.3257,"probe_loss":1.8743},{"arm":"C","stage":1,"seed":1,"probe_acc":0.6924,"probe_loss":0.9936},{"arm":"A","stage":1,"seed":2,"probe_acc":0.8839,"probe_loss":0.3785},{"arm":"B","stage":0,"seed":2,"probe_acc":0.3243,"probe_loss":1.8736},{"arm":"C","stage":1,"seed":2,"probe_acc":0.6896,"probe_loss":0.9866},{"arm":"A","stage":1,"seed":3,"probe_acc":0.8836,"probe_loss":0.3824},{"arm":"B","stage":0,"seed":3,"probe_acc":0.3263,"probe_loss":1.8712},{"arm":"C","stage":1,"seed":3,"probe_acc":0.6869,"probe_loss":0.9926}],"end2":[{"arm":"A","seed":1,"svhn":0.9624,"old":0.3116,"probe":0.5782},{"arm":"A","seed":2,"svhn":0.9606,"old":0.2856,"probe":0.5875},{"arm":"A","seed":3,"svhn":0.9625,"old":0.2787,"probe":0.589},{"arm":"B","seed":1,"svhn":0.9568,"old":null,"probe":0.439},{"arm":"B","seed":2,"svhn":0.957,"old":null,"probe":0.4383},{"arm":"B","seed":3,"svhn":0.9557,"old":null,"probe":0.4361},{"arm":"C","seed":1,"svhn":0.9599,"old":0.1363,"probe":0.5535},{"arm":"C","seed":2,"svhn":0.9569,"old":0.1414,"probe":0.56},{"arm":"C","seed":3,"svhn":0.9584,"old":0.1366,"probe":0.5732}],"cal":{"A_stage2_lr0.0001":{"svhn_acc":[[0,0.1001],[250,0.6706],[500,0.8367],[750,0.8763],[1000,0.894],[1250,0.9092],[1500,0.9139],[1750,0.9213],[2000,0.925],[2250,0.9253],[2500,0.9297],[2750,0.9287],[3000,0.9374],[3250,0.9383],[3500,0.941],[3750,0.9392],[4000,0.9446],[4250,0.9436],[4500,0.9428],[4750,0.9455],[5000,0.9414],[5250,0.949],[5500,0.9448],[5750,0.9474],[6000,0.9487],[6250,0.948],[6500,0.9466],[6750,0.9462],[7000,0.9527],[7250,0.9508],[7500,0.9488],[7750,0.951],[8000,0.952],[8250,0.9532],[8500,0.9513],[8750,0.9531],[9000,0.9539],[9250,0.9521],[9500,0.9536],[9750,0.9535],[10000,0.954],[10250,0.9535],[10500,0.9533],[10750,0.9534],[11000,0.9537],[11250,0.9534],[11460,0.9535]],"old_val_acc":[[0,0.8876],[250,0.8156],[500,0.6386],[750,0.5756],[1000,0.5458],[1250,0.527],[1500,0.5146],[1750,0.4998],[2000,0.4538],[2250,0.4548],[2500,0.4322],[2750,0.462],[3000,0.4826],[3250,0.4382],[3500,0.4204],[3750,0.4114],[4000,0.4402],[4250,0.449],[4500,0.4182],[4750,0.4386],[5000,0.427],[5250,0.4156],[5500,0.3942],[5750,0.3914],[6000,0.3974],[6250,0.3914],[6500,0.3922],[6750,0.3906],[7000,0.3842],[7250,0.3928],[7500,0.3864],[7750,0.3834],[8000,0.3936],[8250,0.3754],[8500,0.3708],[8750,0.3732],[9000,0.3778],[9250,0.375],[9500,0.3768],[9750,0.3766],[10000,0.3768],[10250,0.3718],[10500,0.3718],[10750,0.3708],[11000,0.3712],[11250,0.371],[11460,0.371]],"probe_val_acc":[[0,0.889],[500,0.74],[1000,0.696],[1500,0.6838],[2000,0.669],[2500,0.6496],[3000,0.6614],[3500,0.6436],[4000,0.6454],[4500,0.6288],[5000,0.6486],[5500,0.6326],[6000,0.6232],[6500,0.6274],[7000,0.6304],[7500,0.6278],[8000,0.63],[8500,0.6256],[9000,0.6266],[9500,0.6286],[10000,0.6292],[10500,0.6276],[11000,0.629],[11460,0.6292]]},"A_stage2_lr0.0003":{"svhn_acc":[[0,0.1001],[250,0.8029],[500,0.8748],[750,0.8795],[1000,0.9057],[1250,0.9141],[1500,0.9148],[1750,0.9285],[2000,0.9281],[2250,0.9288],[2500,0.93],[2750,0.934],[3000,0.9396],[3250,0.9464],[3500,0.9456],[3750,0.9449],[4000,0.9508],[4250,0.9457],[4500,0.9498],[4750,0.9519],[5000,0.9518],[5250,0.9505],[5500,0.9499],[5750,0.9489],[6000,0.9509],[6250,0.9557],[6500,0.9541],[6750,0.9579],[7000,0.9559],[7250,0.9619],[7500,0.9572],[7750,0.9583],[8000,0.9599],[8250,0.9624],[8500,0.9607],[8750,0.9616],[9000,0.9629],[9250,0.9615],[9500,0.9623],[9750,0.9619],[10000,0.9632],[10250,0.962],[10500,0.9629],[10750,0.962],[11000,0.9623],[11250,0.9623],[11460,0.9624]],"old_val_acc":[[0,0.8876],[250,0.6922],[500,0.5816],[750,0.5436],[1000,0.466],[1250,0.4794],[1500,0.3806],[1750,0.4152],[2000,0.3676],[2250,0.3464],[2500,0.3606],[2750,0.367],[3000,0.3828],[3250,0.3696],[3500,0.3528],[3750,0.3346],[4000,0.3454],[4250,0.363],[4500,0.3358],[4750,0.362],[5000,0.3144],[5250,0.315],[5500,0.3426],[5750,0.315],[6000,0.3222],[6250,0.3354],[6500,0.3408],[6750,0.3204],[7000,0.3248],[7250,0.3222],[7500,0.3238],[7750,0.3114],[8000,0.3284],[8250,0.3142],[8500,0.319],[8750,0.322],[9000,0.3222],[9250,0.3174],[9500,0.3222],[9750,0.3188],[10000,0.318],[10250,0.3204],[10500,0.3214],[10750,0.3148],[11000,0.3142],[11250,0.3138],[11460,0.3136]],"probe_val_acc":[[0,0.889],[500,0.7032],[1000,0.661],[1500,0.6358],[2000,0.614],[2500,0.6006],[3000,0.5962],[3500,0.5828],[4000,0.589],[4500,0.5836],[5000,0.581],[5500,0.5982],[6000,0.5896],[6500,0.5922],[7000,0.5918],[7500,0.5898],[8000,0.595],[8500,0.5876],[9000,0.591],[9500,0.5892],[10000,0.5864],[10500,0.5924],[11000,0.5878],[11460,0.5874]]},"A_stage2_lr0.001":{"svhn_acc":[[0,0.1001],[250,0.824],[500,0.8384],[750,0.8623],[1000,0.8825],[1250,0.8949],[1500,0.8884],[1750,0.902],[2000,0.9095],[2250,0.9138],[2500,0.9113],[2750,0.9289],[3000,0.9315],[3250,0.9322],[3500,0.9309],[3750,0.9353],[4000,0.9423],[4250,0.9418],[4500,0.9357],[4750,0.9427],[5000,0.9459],[5250,0.9501],[5500,0.9513],[5750,0.9513],[6000,0.953],[6250,0.9494],[6500,0.9569],[6750,0.9583],[7000,0.9581],[7250,0.9613],[7500,0.9588],[7750,0.9639],[8000,0.9627],[8250,0.9632],[8500,0.967],[8750,0.9657],[9000,0.9671],[9250,0.9677],[9500,0.9681],[9750,0.9679],[10000,0.9682],[10250,0.9681],[10500,0.9691],[10750,0.9698],[11000,0.97],[11250,0.9701],[11460,0.9702]],"old_val_acc":[[0,0.8876],[250,0.575],[500,0.3986],[750,0.3122],[1000,0.2714],[1250,0.2424],[1500,0.2202],[1750,0.2256],[2000,0.1998],[2250,0.2186],[2500,0.2034],[2750,0.2],[3000,0.2208],[3250,0.2268],[3500,0.2128],[3750,0.186],[4000,0.2044],[4250,0.2232],[4500,0.1996],[4750,0.1994],[5000,0.2084],[5250,0.1998],[5500,0.1906],[5750,0.2006],[6000,0.196],[6250,0.1988],[6500,0.1994],[6750,0.1982],[7000,0.1978],[7250,0.207],[7500,0.216],[7750,0.2176],[8000,0.2074],[8250,0.2074],[8500,0.21],[8750,0.2002],[9000,0.2172],[9250,0.2238],[9500,0.2162],[9750,0.2194],[10000,0.2126],[10250,0.2136],[10500,0.2126],[10750,0.2128],[11000,0.2106],[11250,0.2114],[11460,0.2118]],"probe_val_acc":[[0,0.889],[500,0.6088],[1000,0.5262],[1500,0.4846],[2000,0.4774],[2500,0.4724],[3000,0.483],[3500,0.46],[4000,0.4628],[4500,0.4574],[5000,0.4608],[5500,0.46],[6000,0.4744],[6500,0.4702],[7000,0.474],[7500,0.4948],[8000,0.4898],[8500,0.4978],[9000,0.4932],[9500,0.5],[10000,0.5058],[10500,0.5018],[11000,0.5004],[11460,0.5012]]},"A_stage3_never_seen_lr0.0001":{"val_acc":[[0,0.1006],[25,0.1334],[50,0.3114],[75,0.4976],[100,0.5938],[125,0.643],[150,0.6806],[175,0.6998],[200,0.7128],[225,0.7228],[250,0.7346],[275,0.7438],[300,0.7568],[325,0.7634],[350,0.76],[375,0.7678],[400,0.7742],[425,0.7688],[450,0.7784],[475,0.7796],[500,0.7828],[600,0.7924],[700,0.7916],[800,0.7968],[900,0.8042],[1000,0.8],[1100,0.8052],[1200,0.81],[1300,0.798],[1400,0.8154],[1500,0.8068],[1600,0.8106],[1700,0.8012],[1800,0.811],[1900,0.8054],[2000,0.8098]]},"A_stage3_never_seen_lr0.0003":{"val_acc":[[0,0.1006],[25,0.2554],[50,0.5056],[75,0.6396],[100,0.6946],[125,0.7268],[150,0.7384],[175,0.7628],[200,0.7704],[225,0.7722],[250,0.767],[275,0.7906],[300,0.7942],[325,0.7946],[350,0.7904],[375,0.7978],[400,0.8078],[425,0.8076],[450,0.8164],[475,0.8086],[500,0.7994],[600,0.8072],[700,0.8178],[800,0.8082],[900,0.8048],[1000,0.8162],[1100,0.812],[1200,0.8072],[1300,0.8088],[1400,0.8128],[1500,0.8046],[1600,0.813],[1700,0.799],[1800,0.81],[1900,0.8056],[2000,0.8052]]},"A_stage3_never_seen_lr0.001":{"val_acc":[[0,0.1006],[25,0.4388],[50,0.6418],[75,0.7128],[100,0.7182],[125,0.73],[150,0.7598],[175,0.7488],[200,0.7496],[225,0.74],[250,0.7408],[275,0.7682],[300,0.7584],[325,0.7428],[350,0.7606],[375,0.7628],[400,0.7704],[425,0.7506],[450,0.7716],[475,0.7536],[500,0.773],[600,0.7522],[700,0.7584],[800,0.7266],[900,0.7522],[1000,0.7616],[1100,0.7554],[1200,0.7422],[1300,0.7448],[1400,0.7496],[1500,0.7562],[1600,0.7578],[1700,0.7532],[1800,0.7354],[1900,0.752],[2000,0.7334]]},"A_stage3_never_seen_lr3e-05":{"val_acc":[[0,0.1006],[25,0.1068],[50,0.1472],[75,0.2438],[100,0.3692],[125,0.4728],[150,0.5214],[175,0.5634],[200,0.5982],[225,0.6166],[250,0.6314],[275,0.6512],[300,0.6632],[325,0.6724],[350,0.681],[375,0.688],[400,0.6972],[425,0.7054],[450,0.704],[475,0.7108],[500,0.7114],[600,0.7362],[700,0.7444],[800,0.7502],[900,0.7568],[1000,0.7636],[1100,0.7686],[1200,0.7706],[1300,0.7724],[1400,0.7778],[1500,0.7778],[1600,0.7876],[1700,0.7892],[1800,0.7868],[1900,0.7896],[2000,0.79]]},"B_stage2_lr0.0001":{"svhn_acc":[[0,0.0752],[250,0.1938],[500,0.2706],[750,0.3725],[1000,0.4604],[1250,0.5115],[1500,0.5404],[1750,0.6141],[2000,0.662],[2250,0.7029],[2500,0.7651],[2750,0.7817],[3000,0.8153],[3250,0.8385],[3500,0.8572],[3750,0.8476],[4000,0.8663],[4250,0.8779],[4500,0.8872],[4750,0.8957],[5000,0.8997],[5250,0.902],[5500,0.9033],[5750,0.9142],[6000,0.9174],[6250,0.9193],[6500,0.9163],[6750,0.9255],[7000,0.9242],[7250,0.93],[7500,0.9303],[7750,0.9356],[8000,0.934],[8250,0.9356],[8500,0.9363],[8750,0.938],[9000,0.9393],[9250,0.9378],[9500,0.9397],[9750,0.9409],[10000,0.9425],[10250,0.9435],[10500,0.9421],[10750,0.9436],[11000,0.9438],[11250,0.944],[11460,0.944]],"probe_val_acc":[[0,0.319],[500,0.3758],[1000,0.4038],[1500,0.4088],[2000,0.4192],[2500,0.4202],[3000,0.427],[3500,0.442],[4000,0.44],[4500,0.452],[5000,0.4396],[5500,0.4364],[6000,0.447],[6500,0.4546],[7000,0.4562],[7500,0.4618],[8000,0.467],[8500,0.4706],[9000,0.4688],[9500,0.4672],[10000,0.4684],[10500,0.4706],[11000,0.4698],[11460,0.47]]},"B_stage2_lr0.0003":{"svhn_acc":[[0,0.0752],[250,0.2154],[500,0.4111],[750,0.4856],[1000,0.5239],[1250,0.5463],[1500,0.5847],[1750,0.6847],[2000,0.7434],[2250,0.7744],[2500,0.8178],[2750,0.8384],[3000,0.8681],[3250,0.861],[3500,0.8803],[3750,0.8871],[4000,0.888],[4250,0.9048],[4500,0.8996],[4750,0.9053],[5000,0.9124],[5250,0.9262],[5500,0.9194],[5750,0.923],[6000,0.9253],[6250,0.9351],[6500,0.9319],[6750,0.9396],[7000,0.9357],[7250,0.9436],[7500,0.9409],[7750,0.9502],[8000,0.9488],[8250,0.9498],[8500,0.9521],[8750,0.9491],[9000,0.9504],[9250,0.9527],[9500,0.9561],[9750,0.9557],[10000,0.9548],[10250,0.9566],[10500,0.9558],[10750,0.9568],[11000,0.9569],[11250,0.9567],[11460,0.9568]],"probe_val_acc":[[0,0.319],[500,0.3734],[1000,0.35],[1500,0.3616],[2000,0.379],[2500,0.3838],[3000,0.3834],[3500,0.3934],[4000,0.397],[4500,0.397],[5000,0.4042],[5500,0.4114],[6000,0.407],[6500,0.4226],[7000,0.4234],[7500,0.4338],[8000,0.4334],[8500,0.4368],[9000,0.4426],[9500,0.4458],[10000,0.447],[10500,0.445],[11000,0.4476],[11460,0.4474]]},"B_stage2_lr0.0003_steps5157":{"svhn_acc":[[0,0.0752],[250,0.2154],[500,0.4111],[750,0.4888],[1000,0.5108],[1250,0.547],[1500,0.5833],[1750,0.6853],[2000,0.745],[2250,0.772],[2500,0.82],[2750,0.8501],[3000,0.8688],[3250,0.8784],[3500,0.8977],[3750,0.8995],[4000,0.9073],[4250,0.9157],[4500,0.9181],[4750,0.9207],[5000,0.9218],[5157,0.9219]],"probe_val_acc":[[0,0.319],[500,0.3734],[1000,0.343],[1500,0.357],[2000,0.3726],[2500,0.383],[3000,0.3938],[3500,0.402],[4000,0.4014],[4500,0.408],[5000,0.4132],[5157,0.4124]]},"B_stage2_lr0.001":{"svhn_acc":[[0,0.0752],[250,0.2566],[500,0.4146],[750,0.4194],[1000,0.4181],[1250,0.4087],[1500,0.428],[1750,0.4065],[2000,0.4083],[2250,0.427],[2500,0.4112],[2750,0.425],[3000,0.4492],[3250,0.4333],[3500,0.4446],[3750,0.4359],[4000,0.4275],[4250,0.4433],[4500,0.4369],[4750,0.4123],[5000,0.4223],[5250,0.4339],[5500,0.4393],[5750,0.4479],[6000,0.4624],[6250,0.4608],[6500,0.478],[6750,0.4987],[7000,0.5043],[7250,0.4988],[7500,0.5068],[7750,0.5121],[8000,0.5158],[8250,0.5093],[8500,0.5161],[8750,0.5255],[9000,0.5263],[9250,0.5369],[9500,0.5331],[9750,0.5395],[10000,0.5402],[10250,0.5416],[10500,0.5469],[10750,0.548],[11000,0.5469],[11250,0.5478],[11460,0.5473]],"probe_val_acc":[[0,0.319],[500,0.2832],[1000,0.227],[1500,0.221],[2000,0.2418],[2500,0.2286],[3000,0.2414],[3500,0.2396],[4000,0.2182],[4500,0.243],[5000,0.2134],[5500,0.219],[6000,0.2332],[6500,0.2208],[7000,0.2182],[7500,0.2242],[8000,0.219],[8500,0.2306],[9000,0.2292],[9500,0.2364],[10000,0.2286],[10500,0.2278],[11000,0.2258],[11460,0.2272]]},"B_stage3_never_seen_lr0.0001":{"val_acc":[[0,0.093],[25,0.1128],[50,0.2402],[75,0.352],[100,0.4276],[125,0.4756],[150,0.4882],[175,0.5228],[200,0.5158],[225,0.5524],[250,0.5444],[275,0.5386],[300,0.554],[325,0.5776],[350,0.586],[375,0.5944],[400,0.5968],[425,0.6102],[450,0.6194],[475,0.6156],[500,0.6168],[600,0.6384],[700,0.6496],[800,0.6546],[900,0.6474],[1000,0.665],[1100,0.6518],[1200,0.6712],[1300,0.673],[1400,0.6818],[1500,0.6822],[1600,0.689],[1700,0.6842],[1800,0.6846],[1900,0.6828],[2000,0.676]]},"B_stage3_never_seen_lr0.0003":{"val_acc":[[0,0.093],[25,0.1948],[50,0.341],[75,0.4474],[100,0.4878],[125,0.4848],[150,0.5208],[175,0.5342],[200,0.5406],[225,0.5568],[250,0.5718],[275,0.5874],[300,0.575],[325,0.5732],[350,0.6134],[375,0.6122],[400,0.6026],[425,0.5996],[450,0.6272],[475,0.6442],[500,0.6232],[600,0.6456],[700,0.6388],[800,0.6538],[900,0.6476],[1000,0.6468],[1100,0.67],[1200,0.6694],[1300,0.6806],[1400,0.6588],[1500,0.6908],[1600,0.6942],[1700,0.697],[1800,0.6856],[1900,0.685],[2000,0.6798]]},"B_stage3_never_seen_lr0.001":{"val_acc":[[0,0.093],[25,0.2504],[50,0.3884],[75,0.4284],[100,0.431],[125,0.4566],[150,0.511],[175,0.4494],[200,0.4668],[225,0.5068],[250,0.4776],[275,0.5302],[300,0.4714],[325,0.5368],[350,0.5106],[375,0.5478],[400,0.5232],[425,0.5504],[450,0.5528],[475,0.5664],[500,0.5476],[600,0.5758],[700,0.5758],[800,0.548],[900,0.604],[1000,0.6126],[1100,0.6212],[1200,0.6298],[1300,0.6068],[1400,0.627],[1500,0.641],[1600,0.638],[1700,0.6464],[1800,0.6224],[1900,0.6462],[2000,0.6602]]},"B_stage3_never_seen_lr3e-05":{"val_acc":[[0,0.093],[25,0.1],[50,0.1194],[75,0.1996],[100,0.2826],[125,0.3402],[150,0.3974],[175,0.4168],[200,0.4374],[225,0.4606],[250,0.4612],[275,0.4804],[300,0.5076],[325,0.5154],[350,0.5194],[375,0.522],[400,0.5326],[425,0.5396],[450,0.5548],[475,0.557],[500,0.563],[600,0.5822],[700,0.588],[800,0.6104],[900,0.6076],[1000,0.6292],[1100,0.627],[1200,0.6268],[1300,0.6314],[1400,0.6462],[1500,0.6464],[1600,0.6614],[1700,0.6574],[1800,0.6582],[1900,0.6606],[2000,0.6552]]},"C_stage3_never_seen_lr0.0001":{"val_acc":[[0,0.0984],[25,0.1354],[50,0.2724],[75,0.4868],[100,0.5638],[125,0.615],[150,0.6356],[175,0.6388],[200,0.6608],[225,0.6648],[250,0.6712],[275,0.6842],[300,0.6962],[325,0.704],[350,0.6986],[375,0.6976],[400,0.6982],[425,0.7034],[450,0.707],[475,0.7078],[500,0.7092],[600,0.7058],[700,0.7118],[800,0.7172],[900,0.726],[1000,0.7238],[1100,0.7296],[1200,0.723],[1300,0.7244],[1400,0.728],[1500,0.7352],[1600,0.7252],[1700,0.7278],[1800,0.7312],[1900,0.7392],[2000,0.7302]]},"C_stage3_never_seen_lr0.0003":{"val_acc":[[0,0.0984],[25,0.208],[50,0.4942],[75,0.606],[100,0.6254],[125,0.6534],[150,0.6852],[175,0.6884],[200,0.6792],[225,0.7112],[250,0.683],[275,0.7138],[300,0.7106],[325,0.7208],[350,0.7162],[375,0.7254],[400,0.7298],[425,0.7236],[450,0.7192],[475,0.7174],[500,0.7198],[600,0.7202],[700,0.716],[800,0.7098],[900,0.7138],[1000,0.7236],[1100,0.7264],[1200,0.7246],[1300,0.72],[1400,0.7334],[1500,0.71],[1600,0.7312],[1700,0.7248],[1800,0.7236],[1900,0.7206],[2000,0.7276]]},"C_stage3_never_seen_lr0.001":{"val_acc":[[0,0.0984],[25,0.4376],[50,0.5884],[75,0.6382],[100,0.6492],[125,0.6132],[150,0.6582],[175,0.6794],[200,0.6256],[225,0.6844],[250,0.6696],[275,0.691],[300,0.6674],[325,0.7052],[350,0.7004],[375,0.6898],[400,0.6878],[425,0.7132],[450,0.7084],[475,0.7104],[500,0.7088],[600,0.6928],[700,0.698],[800,0.6686],[900,0.687],[1000,0.6938],[1100,0.6906],[1200,0.6978],[1300,0.6822],[1400,0.6966],[1500,0.6886],[1600,0.6972],[1700,0.6778],[1800,0.6874],[1900,0.696],[2000,0.6914]]},"C_stage3_never_seen_lr3e-05":{"val_acc":[[0,0.0984],[25,0.1092],[50,0.14],[75,0.2078],[100,0.3432],[125,0.4436],[150,0.5082],[175,0.5464],[200,0.571],[225,0.5874],[250,0.6012],[275,0.6132],[300,0.6282],[325,0.6396],[350,0.6434],[375,0.6498],[400,0.6558],[425,0.655],[450,0.667],[475,0.664],[500,0.664],[600,0.6826],[700,0.6878],[800,0.6954],[900,0.7004],[1000,0.7062],[1100,0.706],[1200,0.7122],[1300,0.7112],[1400,0.7194],[1500,0.7154],[1600,0.7182],[1700,0.711],[1800,0.7174],[1900,0.7172],[2000,0.718]]}},"cal3":{"0.0001":{"A":{"point":0.8098,"avg":0.8075},"B":{"point":0.676,"avg":0.6831},"C":{"point":0.7302,"avg":0.7315}},"0.0003":{"A":{"point":0.8052,"avg":0.8062},"B":{"point":0.6798,"avg":0.6887},"C":{"point":0.7276,"avg":0.723}},"0.001":{"A":{"point":0.7334,"avg":0.748},"B":{"point":0.6602,"avg":0.6424},"C":{"point":0.6914,"avg":0.6897}},"3e-05":{"A":{"point":0.79,"avg":0.7868},"B":{"point":0.6552,"avg":0.6565},"C":{"point":0.718,"avg":0.7162}}},"memory":{"gap_A":[0.0148,0.019,0.0259],"gap_B":[0.0044,0.0001,0.0037],"gap_C":[-0.0019,-0.0001,0.0071],"effect_vs_B":[0.0104,0.0189,0.0222],"effect_vs_C":[0.0167,0.0191,0.0188]}};
+const NS = "http://www.w3.org/2000/svg";
+const pct = (v, d = 1) => v == null ? "–" : (v * 100).toFixed(d) + "%";
+function s(tag, a, p) { const e = document.createElementNS(NS, tag); for (const k in (a || {})) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+function niceTicks(lo, hi, n) {
+  const raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), e = raw / mag;
+  const step = (e >= 7.5 ? 10 : e >= 3.5 ? 5 : e >= 1.5 ? 2 : 1) * mag, t = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+  return t;
+}
+function legend(host, items) {
+  const L = document.createElement("div"); L.className = "legend";
+  items.forEach(it => {
+    const k = document.createElement("span"); k.className = "key";
+    k.innerHTML = it.dot
+      ? `<svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" style="fill:${it.color}"/></svg>${it.name}`
+      : `<svg width="24" height="10" aria-hidden="true"><line x1="1" y1="5" x2="23" y2="5" style="stroke:${it.color};stroke-width:2.5" ${it.dash ? 'stroke-dasharray="5 3"' : ""}/></svg>${it.name}`;
+    L.appendChild(k);
+  });
+  host.appendChild(L);
+}
+function frame(host, W, H) {
+  const wrap = document.createElement("div"); wrap.className = "plot"; host.appendChild(wrap);
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, wrap);
+  const tip = document.createElement("div"); tip.className = "tip"; wrap.appendChild(tip);
+  return { wrap, svg, tip };
+}
+function placeTip(tip, wrap, xPx, yPx) {
+  tip.style.display = "block";
+  const w = wrap.clientWidth, tw = tip.offsetWidth;
+  let left = xPx + 14; if (left + tw > w) left = Math.max(0, xPx - tw - 14);
+  tip.style.left = left + "px"; tip.style.top = Math.max(0, yPx) + "px";
+}
+
+function lineChart(id, o) {
+  const host = document.getElementById(id); if (!host) return;
+  legend(host, o.series.filter(q => !q.noLegend));
+  const W = o.w || 700, H = o.h || 300, m = { l: 50, r: o.endLabels === false ? 14 : 112, t: 12, b: 40 };
+  const { wrap, svg, tip } = frame(host, W, H);
+  svg.setAttribute("aria-label", o.aria || "");
+  const all = o.series.flatMap(q => q.data.map(d => d[0]));
+  const x0 = o.xMin ?? Math.min(...all), x1 = o.xMax ?? Math.max(...all), y0 = o.yMin, y1 = o.yMax;
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
+  const defs = s("defs", {}, svg), cp = s("clipPath", { id: "clip-" + id }, defs);
+  s("rect", { x: m.l, y: m.t - 2, width: W - m.l - m.r, height: H - m.t - m.b + 2 }, cp);
+  (o.yTicks || niceTicks(y0, y1, o.yn || 5)).forEach(t => {
+    s("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), class: "grid" }, svg);
+    s("text", { x: m.l - 7, y: Y(t) + 4, class: "tick", "text-anchor": "end" }, svg).textContent = o.yFmt ? o.yFmt(t) : pct(t, 0);
+  });
+  niceTicks(x0, x1, o.xn || 6).forEach(t => {
+    s("line", { x1: X(t), x2: X(t), y1: H - m.b, y2: H - m.b + 4, class: "axis" }, svg);
+    s("text", { x: X(t), y: H - m.b + 17, class: "tick", "text-anchor": "middle" }, svg).textContent = o.xFmt ? o.xFmt(t) : t.toLocaleString("en-US");
+  });
+  s("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: "axis" }, svg);
+  s("text", { x: (m.l + W - m.r) / 2, y: H - 4, class: "axlab", "text-anchor": "middle" }, svg).textContent = o.xLabel || "";
+  (o.refs || []).forEach(r => {
+    s("line", { x1: m.l, x2: W - m.r, y1: Y(r.y), y2: Y(r.y), class: "ref" }, svg);
+    s("text", { x: m.l + (W - m.l - m.r) * (r.at ?? 0.02), y: Y(r.y) - 5, class: "reflabel" }, svg).textContent = r.label;
+  });
+  (o.vrefs || []).forEach(r => {
+    s("line", { x1: X(r.x), x2: X(r.x), y1: m.t, y2: H - m.b, class: "ref" }, svg);
+    s("text", { x: X(r.x) + 4, y: m.t + 11, class: "reflabel" }, svg).textContent = r.label;
+  });
+  if (o.note) s("text", { x: m.l + 6, y: H - m.b - 8, class: "note" }, svg).textContent = o.note;
+  const g = s("g", { "clip-path": `url(#clip-${id})` }, svg);
+  o.series.forEach(q => {
+    if (q.band === false || !q.data.some(d => d[2])) return;
+    const up = q.data.map(d => `${X(d[0])},${Y(d[1] + (d[2] || 0))}`);
+    const lo = q.data.slice().reverse().map(d => `${X(d[0])},${Y(d[1] - (d[2] || 0))}`);
+    s("polygon", { points: up.concat(lo).join(" "), style: `fill:${q.color};opacity:.15` }, g);
+  });
+  o.series.forEach(q => {
+    const a = { points: q.data.map(d => `${X(d[0])},${Y(d[1])}`).join(" "), fill: "none", style: `stroke:${q.color};stroke-width:${q.width || 2};opacity:${q.opacity || 1}`, "stroke-linejoin": "round", "stroke-linecap": "round" };
+    if (q.dash) a["stroke-dasharray"] = "6 4";
+    s("polyline", a, g);
+    if (q.markers) q.data.forEach(d => s("circle", { cx: X(d[0]), cy: Y(d[1]), r: 3.5, style: `fill:${q.color};stroke:var(--surface);stroke-width:1.5` }, g));
+  });
+  if (o.endLabels !== false) {
+    const labs = o.series.filter(q => q.endLabel !== false).map(q => { const d = q.data[q.data.length - 1]; const v = q.endVal ?? d[1]; return { q, y: Y(Math.min(Math.max(v, y0), y1)) + 4, v }; }).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 15) labs[i].y = labs[i - 1].y + 15;
+    labs.forEach(l => {
+      s("circle", { cx: W - m.r + 9, cy: l.y - 4, r: 3.5, style: `fill:${l.q.color}` }, svg);
+      s("text", { x: W - m.r + 17, y: l.y, class: "endlab" }, svg).textContent = `${l.q.short || l.q.name} ${pct(l.v)}`;
+    });
+  }
+  const cross = s("line", { y1: m.t, y2: H - m.b, class: "cross", visibility: "hidden" }, svg);
+  const dots = o.series.map(q => s("circle", { r: 4.5, style: `fill:${q.color};stroke:var(--surface);stroke-width:2`, visibility: "hidden" }, svg));
+  const hit = s("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+  const hide = () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); };
+  hit.addEventListener("pointermove", ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+    const xv = x0 + (px - m.l) / (W - m.l - m.r) * (x1 - x0);
+    let xs = null; const rows = [];
+    o.series.forEach((q, i) => {
+      let best = null; q.data.forEach(d => { if (!best || Math.abs(d[0] - xv) < Math.abs(best[0] - xv)) best = d; });
+      if (!best || Math.abs(best[0] - xv) > (x1 - x0) * 0.05) { dots[i].setAttribute("visibility", "hidden"); return; }
+      xs = xs ?? best[0];
+      dots[i].setAttribute("cx", X(best[0])); dots[i].setAttribute("cy", Y(best[1]));
+      dots[i].setAttribute("visibility", best[1] >= y0 && best[1] <= y1 ? "visible" : "hidden");
+      rows.push({ v: best[1], h: `<div><i style="background:${q.color}"></i>${q.name}<b>${pct(best[1])}${best[2] ? " ± " + (best[2] * 100).toFixed(1) : ""}</b></div>` });
+    });
+    if (!rows.length) { hide(); return; }
+    rows.sort((a, b) => b.v - a.v);
+    cross.setAttribute("x1", X(xs)); cross.setAttribute("x2", X(xs)); cross.setAttribute("visibility", "visible");
+    tip.innerHTML = `<div class="tiphead">${o.xName || "step"} ${o.xFmt ? o.xFmt(xs) : xs.toLocaleString("en-US")}</div>` + rows.map(r => r.h).join("");
+    placeTip(tip, wrap, X(xs) / W * r.width, 6);
+  });
+  hit.addEventListener("pointerleave", hide);
+}
+
+const ARM = { A: "var(--a)", B: "var(--b)", C: "var(--c)" };
+const NAME = { A: "A · learned CIFAR-10", B: "B · never learned", C: "C · learned CIFAR-100" };
+const tri = arr => arr.map(d => [d[0], d[1], d[2] || 0]);
+const pairs = arr => arr.map(d => [d[0], d[1], 0]);
+const armSeries = (get, opts = {}) => ["A", "C", "B"].filter(a => get(a)).map(a => ({ name: NAME[a], short: a, color: ARM[a], data: get(a), ...opts }));
+
+// 7.2 stage-2 calibration
+const EP = 573;
+const ep = arr => arr.map(d => [d[0] / EP, d[1], 0]);
+const small2 = { w: 340, h: 250, xn: 4, endLabels: false, xLabel: "SVHN epoch", xName: "epoch", xFmt: v => (+v).toFixed(v % 1 ? 1 : 0) };
+lineChart("c-cal2-old", { ...small2, yMin: 0, yMax: 1,
+  refs: [{ y: 0.15, label: "ResNet-18 rule: ≤ 15%", at: 0.3 }],
+  series: [
+    { name: "A · lr 1e-4", short: "1e-4", color: "var(--seq1)", data: ep(D.cal["A_stage2_lr0.0001"].old_val_acc) },
+    { name: "A · lr 3e-4 (chosen)", short: "3e-4", color: "var(--seq2)", data: ep(D.cal["A_stage2_lr0.0003"].old_val_acc), width: 2.6 },
+    { name: "A · lr 1e-3", short: "1e-3", color: "var(--seq3)", data: ep(D.cal["A_stage2_lr0.001"].old_val_acc) },
+  ], aria: "A's old head levels off at about 37%, 31% and 20% for learning rates 1e-4, 3e-4 and 1e-3; none reaches 15%." });
+lineChart("c-cal2-probe", { ...small2, yMin: 0.2, yMax: 1,
+  series: [
+    { name: "A · lr 1e-4", short: "A 1e-4", color: "var(--seq1)", data: ep(D.cal["A_stage2_lr0.0001"].probe_val_acc), markers: true },
+    { name: "A · lr 3e-4", short: "A 3e-4", color: "var(--seq2)", data: ep(D.cal["A_stage2_lr0.0003"].probe_val_acc), markers: true, width: 2.6 },
+    { name: "A · lr 1e-3", short: "A 1e-3", color: "var(--seq3)", data: ep(D.cal["A_stage2_lr0.001"].probe_val_acc), markers: true },
+    { name: "B · lr 3e-4", short: "B 3e-4", color: "var(--b)", dash: true, data: ep(D.cal["B_stage2_lr0.0003"].probe_val_acc), markers: true },
+  ], aria: "A's probe drops from 89% to between 50% and 63% depending on the rate, and stays well above B's probe." });
+lineChart("c-cal2-bsvhn", { ...small2, yMin: 0, yMax: 1,
+  refs: [{ y: 0.95, label: "rule: ≥ 95%", at: 0.45 }],
+  series: [
+    { name: "B · lr 1e-4", short: "1e-4", color: "var(--seq1)", data: ep(D.cal["B_stage2_lr0.0001"].svhn_acc) },
+    { name: "B · lr 3e-4 (chosen)", short: "3e-4", color: "var(--seq2)", data: ep(D.cal["B_stage2_lr0.0003"].svhn_acc), width: 2.6 },
+    { name: "B · lr 1e-3", short: "1e-3", color: "var(--seq3)", data: ep(D.cal["B_stage2_lr0.001"].svhn_acc) },
+  ], aria: "B reaches 95.7% on SVHN at 3e-4, 94.4% at 1e-4, and only 55% at 1e-3." });
+
+// 7.4 stage-3 calibration dot plot
+(function () {
+  const host = document.getElementById("c-cal3"); if (!host) return;
+  legend(host, [{ name: NAME.A, color: ARM.A, dot: 1 }, { name: NAME.C, color: ARM.C, dot: 1 }, { name: NAME.B, color: ARM.B, dot: 1 }, { name: "mean of the three", color: "var(--ink)" }]);
+  const W = 700, H = 280, m = { l: 50, r: 20, t: 14, b: 42 }, y0 = 0.6, y1 = 0.85;
+  const { wrap, svg, tip } = frame(host, W, H);
+  svg.setAttribute("aria-label", "Mean validation accuracy is highest at learning rate 1e-4, narrowly ahead of 3e-4; B alone is best at 3e-4.");
+  const lrs = ["3e-05", "0.0001", "0.0003", "0.001"], bw = (W - m.l - m.r) / lrs.length;
+  const Y = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
+  niceTicks(y0, y1, 6).forEach(t => { s("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), class: "grid" }, svg); s("text", { x: m.l - 7, y: Y(t) + 4, class: "tick", "text-anchor": "end" }, svg).textContent = pct(t, 0); });
+  s("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: "axis" }, svg);
+  s("text", { x: (m.l + W - m.r) / 2, y: H - 4, class: "axlab", "text-anchor": "middle" }, svg).textContent = "stage-3 learning rate";
+  lrs.forEach((lr, i) => {
+    const cx = m.l + bw * (i + 0.5), vals = D.cal3[lr];
+    s("text", { x: cx, y: H - m.b + 17, class: "tick", "text-anchor": "middle" }, svg).textContent = ({ "3e-05": "3e-5", "0.0001": "1e-4", "0.0003": "3e-4", "0.001": "1e-3" })[lr] + (lr === "0.0001" ? " (chosen)" : "");
+    const mean = (vals.A.avg + vals.B.avg + vals.C.avg) / 3;
+    s("line", { x1: cx - 40, x2: cx + 40, y1: Y(mean), y2: Y(mean), style: "stroke:var(--ink);stroke-width:2.5" }, svg);
+    s("text", { x: cx + 44, y: Y(mean) + 4, class: "endlab" }, svg).textContent = pct(mean);
+    ["A", "C", "B"].forEach((a, j) => {
+      const x = cx - 22 + j * 22, y = Y(vals[a].avg);
+      s("circle", { cx: x, cy: y, r: 6.5, style: `fill:${ARM[a]};stroke:var(--surface);stroke-width:2` }, svg);
+      const hit = s("circle", { cx: x, cy: y, r: 12, fill: "transparent" }, svg);
+      hit.addEventListener("pointerenter", () => { const r = svg.getBoundingClientRect(); tip.innerHTML = `<div class="tiphead">lr ${lr}</div><div><i style="background:${ARM[a]}"></i>${NAME[a]}<b>${pct(vals[a].avg)}</b></div><div>single point at 2,000<b>${pct(vals[a].point)}</b></div>`; placeTip(tip, wrap, x / W * r.width, y / H * r.height - 20); });
+      hit.addEventListener("pointerleave", () => tip.style.display = "none");
+    });
+  });
+})();
+
+// 9.1 stage 1
+lineChart("c-s1", {
+  h: 280, yMin: 0, yMax: 1, xLabel: "stage-1 epoch", xName: "epoch",
+  series: [
+    { name: "A · CIFAR-10 test", short: "A", color: ARM.A, data: tri(D.s1.A) },
+    { name: "C · CIFAR-100 test", short: "C", color: ARM.C, data: tri(D.s1.C) },
+  ], aria: "A reaches 88.3% on CIFAR-10 and C reaches 61.4% on CIFAR-100 after 200 epochs."
+});
+
+// 9.2 stage 2
+const s2 = (col) => a => D.s2[a][col] ? tri(D.s2[a][col]) : null;
+const small = { w: 340, h: 250, endLabels: false, xLabel: "SVHN step", xn: 4 };
+lineChart("c-s2-svhn", { ...small, yMin: 0, yMax: 1, series: armSeries(s2("svhn_acc")), aria: "All arms reach 95.6 to 96.2% on SVHN." });
+lineChart("c-s2-old", { ...small, yMin: 0, yMax: 1, refs: [{ y: 0.1, label: "A's chance 10%", at: 0.35 }], series: armSeries(s2("old_acc")), aria: "A's old head falls from 88% to about 29%; C's from 61% to 14%." });
+lineChart("c-s2-probe", { ...small, yMin: 0, yMax: 1, series: armSeries(s2("probe_acc"), { markers: true }), aria: "The CIFAR-10 probe drops to 58% for A and 56% for C, and rises to 44% for B." });
+
+// 9.3 stage 3
+const finalOf = (a, sub) => { const r = D.runs.filter(q => q.arm === a && q.subset === sub); return r.reduce((x, q) => x + q.final_acc, 0) / r.length; };
+const withFinal = (sub) => (list) => list.map(q => ({ ...q, endVal: finalOf(q.short, sub) }));
+lineChart("c-s3-ns", { h: 330, yMin: 0, yMax: 0.9, xLabel: "stage-3 step", series: withFinal("never_seen")(armSeries(a => tri(D.s3.never_seen[a]))), aria: "Relearning on never-seen images: A reaches 81%, C 73%, B 70%." });
+const first = arr => tri(arr.filter(d => d[0] <= 500));
+lineChart("c-s3-zoom", { w: 460, h: 280, xn: 5, yMin: 0, yMax: 0.85, xLabel: "stage-3 step", series: armSeries(a => first(D.s3.never_seen[a])), aria: "A and C are level until about step 100, then A pulls ahead." });
+lineChart("c-s3-as", { w: 460, h: 280, xn: 4, yMin: 0, yMax: 0.9, xLabel: "stage-3 step", series: withFinal("a_seen")(armSeries(a => tri(D.s3.a_seen[a]))), aria: "On A-seen images A ends 2 points higher than on never-seen images; B and C do not." });
+
+// 9.5 aligned
+lineChart("c-aligned", { h: 300, yMin: 0.5, yMax: 0.88, xLabel: "steps after first reaching 50%", xName: "step +", series: armSeries(a => tri(D.aligned[a])), aria: "After reaching 50%, A climbs fastest, then C, then B." });
+
+// 9.5 decomposition bars
+(function () {
+  const host = document.getElementById("c-decomp"); if (!host) return;
+  const W = 700, H = 200, m = { l: 40, r: 190, t: 10, b: 34 };
+  const { wrap, svg, tip } = frame(host, W, H);
+  svg.setAttribute("aria-label", "Start probe plus relearning gain: A 58.5 plus 22.3 equals 80.8; C 56.2 plus 16.8 equals 73.0; B 43.8 plus 25.7 equals 69.5.");
+  const X = v => m.l + v * (W - m.l - m.r), rows = ["A", "C", "B"], bh = 34, gap = 16;
+  const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  niceTicks(0, 1, 5).forEach(t => { s("line", { x1: X(t), x2: X(t), y1: m.t, y2: H - m.b, class: "grid" }, svg); s("text", { x: X(t), y: H - m.b + 16, class: "tick", "text-anchor": "middle" }, svg).textContent = pct(t, 0); });
+  rows.forEach((a, i) => {
+    const probe = mean(D.end2.filter(r => r.arm === a).map(r => r.probe));
+    const fin = mean(D.runs.filter(r => r.arm === a && r.subset === "never_seen").map(r => r.final_acc));
+    const y = m.t + i * (bh + gap);
+    s("text", { x: m.l - 10, y: y + bh / 2 + 5, class: "endlab", "text-anchor": "end" }, svg).textContent = a;
+    s("rect", { x: X(0), y, width: X(probe) - X(0) - 1, height: bh, rx: 3, style: `fill:${ARM[a]};opacity:.3` }, svg);
+    s("rect", { x: X(probe) + 1, y, width: X(fin) - X(probe) - 1, height: bh, rx: 3, style: `fill:${ARM[a]}` }, svg);
+    s("text", { x: X(fin) + 8, y: y + bh / 2 + 5, class: "endlab" }, svg).textContent = `${pct(fin)} = ${(probe * 100).toFixed(1)} start + ${((fin - probe) * 100).toFixed(1)} gain`;
+    const hit = s("rect", { x: X(0), y, width: X(fin) - X(0), height: bh, fill: "transparent" }, svg);
+    hit.addEventListener("pointerenter", () => { const r = svg.getBoundingClientRect(); tip.innerHTML = `<div class="tiphead">${NAME[a]}</div><div>probe at start<b>${pct(probe)}</b></div><div>gain in relearning<b>+${((fin - probe) * 100).toFixed(1)}</b></div><div>final (never-seen)<b>${pct(fin)}</b></div>`; placeTip(tip, wrap, X(fin) / W * r.width, y / H * r.height); });
+    hit.addEventListener("pointerleave", () => tip.style.display = "none");
+  });
+  s("text", { x: (m.l + W - m.r) / 2, y: H - 4, class: "axlab", "text-anchor": "middle" }, svg).textContent = "CIFAR-10 test accuracy";
+})();
+
+// 9.7 scatter
+(function () {
+  const host = document.getElementById("c-scatter"); if (!host) return;
+  legend(host, ["A", "C", "B"].map(a => ({ name: NAME[a], color: ARM[a], dot: 1 })));
+  const W = 700, H = 300, m = { l: 52, r: 20, t: 12, b: 42 }, x0 = 0.42, x1 = 0.61, y0 = 0.63, y1 = 0.81;
+  const { wrap, svg, tip } = frame(host, W, H);
+  svg.setAttribute("aria-label", "Arms form three clusters: B low probe and low AUC, C in the middle, A highest on both.");
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), Y = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
+  niceTicks(y0, y1, 5).forEach(t => { s("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), class: "grid" }, svg); s("text", { x: m.l - 7, y: Y(t) + 4, class: "tick", "text-anchor": "end" }, svg).textContent = pct(t, 0); });
+  niceTicks(x0, x1, 6).forEach(t => { s("text", { x: X(t), y: H - m.b + 17, class: "tick", "text-anchor": "middle" }, svg).textContent = pct(t, 0); });
+  s("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: "axis" }, svg);
+  s("text", { x: (m.l + W - m.r) / 2, y: H - 4, class: "axlab", "text-anchor": "middle" }, svg).textContent = "CIFAR-10 probe at the start of relearning";
+  s("text", { x: 14, y: (m.t + H - m.b) / 2, class: "axlab", "text-anchor": "middle", transform: `rotate(-90 14 ${(m.t + H - m.b) / 2})` }, svg).textContent = "relearning AUC";
+  const lab = { A: [0, 0], B: [0, 0], C: [0, 0] }, cnt = { A: 0, B: 0, C: 0 };
+  D.end2.forEach(r => {
+    const run = D.runs.find(q => q.arm === r.arm && q.seed === r.seed && q.subset === "never_seen");
+    const x = X(r.probe), y = Y(run.auc); lab[r.arm][0] += x; lab[r.arm][1] += y; cnt[r.arm]++;
+    s("circle", { cx: x, cy: y, r: 7, style: `fill:${ARM[r.arm]};stroke:var(--surface);stroke-width:2` }, svg);
+    const hit = s("circle", { cx: x, cy: y, r: 13, fill: "transparent" }, svg);
+    hit.addEventListener("pointerenter", () => { const b = svg.getBoundingClientRect(); tip.innerHTML = `<div class="tiphead">${NAME[r.arm]} · seed ${r.seed}</div><div>probe<b>${pct(r.probe)}</b></div><div>AUC<b>${pct(run.auc)}</b></div>`; placeTip(tip, wrap, x / W * b.width, y / H * b.height - 10); });
+    hit.addEventListener("pointerleave", () => tip.style.display = "none");
+  });
+  ["A", "C", "B"].forEach(a => { s("text", { x: lab[a][0] / cnt[a] + 18, y: lab[a][1] / cnt[a] + 22, class: "endlab" }, svg).textContent = a; });
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relearning Experiment Walkthrough</title>
+<title>ResNet-18 Experiment Walkthrough</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -257,6 +257,7 @@ pre.tree .m { color: var(--muted); }
 <section id="status">
   <div class="eyebrow">Start here · Where we are</div>
   <h2>Progress</h2>
+  <p style="border-left:3px solid var(--accent,#0f6f66);padding:8px 12px;margin:8px 0 14px"><b>This page was written while the experiment was being built; its progress notes stop before the final results.</b> For the finished experiment see the <a href="resnet18-report.html">ResNet-18 report</a> and <a href="resnet18-summary.html">summary</a>; for the ViT repeat, the <a href="../vit/vit-report.html">ViT report</a>; and <a href="../index.html">all pages</a>.</p>
   <p><b>All code is written and tested.</b> The lab GPU is set up (PyTorch 2.15.0, CUDA 13.2, same splits), the smoke test ran at <b>7.6 s per epoch</b>, and and <b>stage 1 is complete for all 3 seeds</b> (A ≈ 94.9%, C ≈ 76.7%). The probe is calibrated (C = 0.1). <b>Stage-2 calibration is in progress</b>: learning rate 0.1 wiped almost all of A's CIFAR-10 knowledge, so gentler rates are being compared under a rule fixed in advance.</p>
   <div class="track">
     <div class="stp is-done"><span class="n">SETUP</span><b>Environment</b><span><span class="badge done">✓ done</span></span><p>Python 3.11, PyTorch on MPS, all three datasets (SVHN from the Internet Archive).</p></div>
@@ -382,7 +383,7 @@ pre.tree .m { color: var(--muted); }
         <tr><td class="mono">src/metrics.py</td><td>Steps to 50/70/80%, area under the curve, aligned curves, memory effect</td><td><span class="badge todo">○ to do</span></td></tr>
         <tr><td class="mono">configs/*.yaml</td><td>Shared recipe (<span class="mono">base</span>) + per-stage and probe settings</td><td><span class="badge wip">● stage 2 steps, stage 3 lr, probe C: set by calibration</span></td></tr>
         <tr><td class="mono">notebooks/02 · 03 · 04</td><td>Baseline check · calibration · final results and figures</td><td><span class="badge todo">○ to do</span></td></tr>
-        <tr><td class="mono">docs/</td><td>This page, and <a href="https://claude.ai/artifact/1dEJDaCKRv3BR7vxzTD1YK">How a CNN sees a picture</a></td><td><span class="badge done">✓ kept up to date</span></td></tr>
+        <tr><td class="mono">docs/</td><td>This page, and <a href="../explainers/how-a-cnn-sees.html">How a CNN sees a picture</a></td><td><span class="badge done">✓ kept up to date</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -1329,7 +1330,7 @@ SVHN train and all test sets are used whole: no split needed.</pre>
 <section id="model">
   <div class="eyebrow">16 · The model</div>
   <h2>ResNet-18 for small images, with named heads (<span class="mono">src/model.py</span>)</h2>
-  <p>New to CNNs? <a href="https://claude.ai/artifact/1dEJDaCKRv3BR7vxzTD1YK">How a CNN sees a picture</a> walks through filters and feature maps with a tiny 7×7 example.</p>
+  <p>New to CNNs? <a href="../explainers/how-a-cnn-sees.html">How a CNN sees a picture</a> walks through filters and feature maps with a tiny 7×7 example.</p>
   <p class="table-title">The backbone: what happens to one 32×32 image</p>
   <div class="table-wrap">
     <table>
