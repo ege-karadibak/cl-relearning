@@ -24,3 +24,6 @@ __pycache__/
 
 # Resume files: only for continuing an interrupted run on the server
 *.resume.pt
+
+# Pages for us (reports, summaries, meeting notes): kept locally, not published
+docs/
